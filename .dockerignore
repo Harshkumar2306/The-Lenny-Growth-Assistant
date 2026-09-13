@@ -1,0 +1,22 @@
+# Build context excludes for the backend image (context = repo root)
+.git
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+frontend/node_modules
+frontend/dist
+data/*.db
+data/*.db-*
+data/search_index.pkl
+data/transcripts_index.json
+# Root-level markdown docs only. Do NOT use '*.md': the backend image builds
+# its search index from data/transcripts_raw/episodes/*/transcript.md at build
+# time, and an unscoped pattern silently strips every transcript from the
+# build context (image builds with 0 chunks).
+/*.md
+*.env
+*.env.*
+.env
+docs
+agent_transcripts
