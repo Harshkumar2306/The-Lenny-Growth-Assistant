@@ -140,10 +140,8 @@ The-Lenny-Growth-Assistant/
 │   ├── search_index.pkl     # Precomputed search index (5,993 chunks, ~50 MB)
 │   └── transcripts_index.json  # Metadata & episode directory
 ├── docs/
-│   ├── manual_test_plan.md      # 10 UI manual test scenarios
-│   ├── demo_video_guide.md      # 2–3 minute video recording script
-│   ├── QA_REPORT.md             # Final quality report (metrics + evidence)
-│   └── submission_checklist.md  # Pre-submission checklist
+│   ├── manual_test_plan.md      # 10 UI manual test scenarios (Deliverable #7)
+│   └── demo_video_guide.md      # 2–3 minute video recording script (Deliverable #8)
 ├── agent_transcripts/       # 10 detailed agent engineering logs & retrospectives
 ├── docker-compose.yml       # Production multi-container setup (Postgres + Backend + Frontend)
 ├── run.sh                   # 1-command startup script
