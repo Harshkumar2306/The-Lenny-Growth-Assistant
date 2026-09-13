@@ -257,5 +257,4 @@ This spins up:
 ---
 
 <div align="center">
-  <sub>Built for the <strong>Oogway Labs Forward Deployed Engineer Assessment</strong>. Powered by Lenny's Podcast transcripts.</sub>
 </div>
