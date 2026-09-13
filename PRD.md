@@ -6,7 +6,7 @@
 **Engagement:** The Lenny Growth Assistant — Transcripts to Actionable Strategic Copilot  
 **Version:** 1.0.0 (Production Release)  
 **Status:** Approved & Implemented  
-**Implementation plan:** [ROADMAP.md](ROADMAP.md) (phase-by-phase plan, progress log, and transcript index).
+**Implementation Plan:** Embedded in Section 6 below (multi-phase execution log and milestones).
 
 ---
 
@@ -102,3 +102,32 @@ Because the client brief was open-ended, the following key engineering assumptio
 - [x] **AC-8:** 34/34 passing automated, hermetic test suite (`pytest backend/tests/`).
 - [x] **AC-9:** Non-streaming contract (`stream=false`) returns the same turn data as a single JSON object.
 - [x] **AC-10:** Honest health semantics: `healthy` only when DB + index + at least one model are usable, otherwise `degraded`.
+
+---
+
+## 6. Implementation Plan & Execution Milestones
+
+The project was executed across four disciplined phases matching Forward Deployed Engineer engagement standards:
+
+### Phase 1: Discovery, Ingestion & Grounding Foundation
+- Conducted discovery on Lenny's Podcast repository (300+ episodes).
+- Engineered semantic chunking pipeline (`backend/scripts/ingest.py`) extracting YAML frontmatter, timestamps, and speaker turns into 5,993 chunks.
+- Built hybrid BM25 + TF-IDF index for sub-35ms local keyword/semantic retrieval with second-level YouTube deep links.
+
+### Phase 2: Core Backend, Agent Routing & Dual Persistence
+- Implemented FastAPI backend routers: `/api/chat`, `/api/sessions`, `/api/models`, `/api/artifacts`, and `/api/health`.
+- Architected dual persistence with async SQLAlchemy: primary PostgreSQL with automatic, zero-downtime degradation to local SQLite WAL mode (`data/lenny_fallback.db`).
+- Developed deterministic negative boundary rejection gate (~28ms latency, zero LLM calls on out-of-domain queries).
+- Created multi-provider LLM gateway supporting local Ollama (`llama3.2:1b`), Groq, Anthropic Claude, and OpenAI.
+
+### Phase 3: Artifact Viewer & Specialized Skills
+- Built React 18 / TypeScript frontend with split-screen Claude-style Artifact Viewer.
+- Engineered defense-in-depth security: DOMPurify sanitization + sandboxed iframe (`sandbox="allow-scripts"` strictly without `allow-same-origin`) with injected CSP.
+- Encoded the **Ship 30 for 30** content methodology (~1,250 words, magnetic hook, 1-3-1 cadence, bold lead-ins, actionable takeaway).
+- Added multi-device responsive testing controls: Fluid, Desktop (1024px), Tablet (768px), and Mobile (375px).
+
+### Phase 4: Production Hardening, Testing & Evaluator Handoff
+- Authored 34 hermetic unit/integration tests (`pytest backend/tests/`) covering API contracts, resilience, RAG gating, and persistence.
+- Built single-command bootstrap runner (`./run.sh`) and containerized `docker-compose.yml`.
+- Generated 10 chronological development transcripts (`agent_transcripts/`) documenting engineering decisions and corrections.
+- Audited against all 8 required assessment deliverables with 100% compliance.

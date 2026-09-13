@@ -48,5 +48,5 @@ Phase 4; items marked ⚠️ need an evaluator-accessible machine (Docker/Ollama
 | Manual test scenarios | `docs/manual_test_plan.md` (10/10 PASS) |
 | Video script + pre-flight | `docs/demo_video_guide.md` |
 | Phase 4 transcript | `agent_transcripts/10_final_packaging_and_submission.md` |
-| Roadmap (all phases) | `ROADMAP.md` |
+| Implementation Plan (all phases) | `PRD.md` (§6) |
 | Live screenshots | see `docs/QA_REPORT.md` §9 |

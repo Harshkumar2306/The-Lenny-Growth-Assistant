@@ -147,10 +147,9 @@ The-Lenny-Growth-Assistant/
 ├── agent_transcripts/       # 10 detailed agent engineering logs & retrospectives
 ├── docker-compose.yml       # Production multi-container setup (Postgres + Backend + Frontend)
 ├── run.sh                   # 1-command startup script
-├── PRD.md                   # Product Requirements Document (Discovery brief, JTBD, metrics)
+├── PRD.md                   # Product Requirements Document (Discovery brief, JTBD, metrics, implementation plan)
 ├── architecture.md          # System architecture, schemas, and security topology
 ├── design.md                # UI/UX design specifications and interaction patterns
-├── ROADMAP.md               # Multi-phase execution roadmap & deliverables matrix
 ├── .env.example             # Environment template (copy to .env; never commit .env)
 └── pytest.ini               # Pytest async configuration
 ```
