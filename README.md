@@ -408,6 +408,4 @@ The-Lenny-Growth-Assistant/
 ---
 
 <div align="center">
-  <b>Built for the Forward Deployed Engineer (FDE) Assessment</b><br>
-  Strictly Grounded in Lenny's Podcast Transcripts • Production RAG & Deliverable Studio
 </div>
