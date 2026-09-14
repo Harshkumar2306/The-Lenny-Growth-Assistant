@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { Sparkles } from 'lucide-react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { Sparkles, ArrowDown } from 'lucide-react';
 import { Message, Artifact, Citation } from '../../lib/api';
 import { MessageItem } from './MessageItem';
 
@@ -30,14 +30,47 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   onOpenArtifact,
   onSelectPromptChip,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const isUserScrolledUpRef = useRef<boolean>(false);
+  const [showScrollBottom, setShowScrollBottom] = useState<boolean>(false);
 
+  // Check if user is scrolled up or near bottom
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    // If within 100px of bottom, consider user pinned to bottom
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    const isScrolledUp = distanceFromBottom > 100;
+
+    isUserScrolledUpRef.current = isScrolledUp;
+    setShowScrollBottom(isScrolledUp);
+  }, []);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    isUserScrolledUpRef.current = false;
+    setShowScrollBottom(false);
+    bottomRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' });
+  }, []);
+
+  // When a new message arrives or loading begins (e.g. user submitted prompt), reset to bottom
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingMessage, streamingStatus]);
+    scrollToBottom(true);
+  }, [messages.length, isLoading, scrollToBottom]);
+
+  // While tokens are streaming: ONLY auto-scroll IF the user has NOT scrolled up!
+  useEffect(() => {
+    if (!isUserScrolledUpRef.current && isLoading) {
+      bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+    }
+  }, [streamingMessage, streamingStatus, isLoading]);
 
   return (
-    <div className="flex-1 overflow-y-auto scrollbar-thin scroll-touch flex flex-col">
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      className="flex-1 overflow-y-auto scrollbar-thin scroll-touch flex flex-col relative"
+    >
       {messages.length === 0 && !isLoading ? (
         /* Empty State Hero */
         <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6 md:p-8 max-w-2xl mx-auto text-center my-auto">
@@ -110,6 +143,21 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
 
           <div ref={bottomRef} className="h-4" />
         </div>
+      )}
+
+      {/* Floating Scroll-to-Bottom Pill when user scrolls up during output */}
+      {showScrollBottom && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom(true)}
+          className="sticky bottom-4 self-center z-20 px-3 py-1.5 rounded-full bg-stone-900/95 hover:bg-stone-850 text-stone-200 border border-stone-750 shadow-xl shadow-black/80 flex items-center gap-2 text-xs font-semibold backdrop-blur-md transition-all cursor-pointer group hover:border-amber-500/50 hover:text-amber-300 animate-in fade-in duration-150 my-1"
+        >
+          {isLoading && (
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          )}
+          <span>Scroll to latest</span>
+          <ArrowDown className="w-3.5 h-3.5 text-stone-400 group-hover:text-amber-400 group-hover:translate-y-0.5 transition-transform" />
+        </button>
       )}
     </div>
   );
