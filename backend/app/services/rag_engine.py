@@ -47,7 +47,8 @@ class RAGEngine:
         "say", "says", "said", "think", "thinks", "thought", "good", "much",
         "many", "well", "like", "know", "knows", "knew", "really", "very",
         "just", "also", "even", "more", "most", "some", "any", "lenny",
-        "podcast", "episode", "episodes", "interview", "guest", "guests"
+        "podcast", "episode", "episodes", "interview", "guest", "guests",
+        "best", "better", "great", "top", "worst", "traditional"
     }
 
     def _content_tokens(self, query_tokens: List[str]) -> List[str]:
@@ -172,11 +173,14 @@ class RAGEngine:
             best_text = self.chunks[best_idx]["text"].lower()
             matched = [t for t in content_tokens if t in best_text]
             best_coverage = len(matched) / len(content_tokens)
-            if len(content_tokens) == 2:
-                if len(matched) < 2:
+            if len(content_tokens) <= 3:
+                # Queries with 2-3 content tokens must match ALL of them in the top chunk
+                # (e.g. "chocolate cake recipe" must contain all 3, not just 2 incidental words)
+                if len(matched) < len(content_tokens):
                     max_score = 0.0
             elif len(content_tokens) <= 7:
-                if best_coverage < 0.35 and len(matched) < 2:
+                # Queries with 4-7 content tokens: require >= 50% coverage AND >= 3 distinct terms
+                if best_coverage < 0.50 or len(matched) < 3:
                     max_score = 0.0
             else:
                 # Long queries (> 7 content tokens): rich deliverable prompts

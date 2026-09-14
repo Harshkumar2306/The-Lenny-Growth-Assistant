@@ -438,6 +438,7 @@ export const App: React.FC = () => {
                 isLoading={isLoading}
                 activeProvider={activeProvider}
                 activeModel={activeModel}
+                totalChunks={health?.total_indexed_chunks || 11471}
               />
             </main>
 
@@ -489,6 +490,7 @@ export const App: React.FC = () => {
                 isLoading={isLoading}
                 activeProvider={activeProvider}
                 activeModel={activeModel}
+                totalChunks={health?.total_indexed_chunks || 11471}
               />
             </main>
           )

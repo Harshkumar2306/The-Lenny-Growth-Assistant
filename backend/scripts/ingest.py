@@ -177,7 +177,7 @@ def parse_transcript_file(file_path: Path) -> Dict[str, Any] | None:
         "chunks": chunks
     }
 
-def main(max_episodes: int = 150):
+def main(max_episodes: int = 500):
     print("Starting Lenny Transcript Ingestion...")
     if not TRANSCRIPTS_DIR.exists():
         print(f"Directory {TRANSCRIPTS_DIR} does not exist. Please clone the repository first.")
@@ -277,5 +277,5 @@ def main(max_episodes: int = 150):
 
 if __name__ == "__main__":
     import sys
-    max_eps = int(sys.argv[1]) if len(sys.argv) > 1 else 150
+    max_eps = int(sys.argv[1]) if len(sys.argv) > 1 else 500
     main(max_episodes=max_eps)

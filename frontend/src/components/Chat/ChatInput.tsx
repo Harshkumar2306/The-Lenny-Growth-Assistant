@@ -6,6 +6,7 @@ interface ChatInputProps {
   isLoading: boolean;
   activeProvider: string;
   activeModel?: string;
+  totalChunks?: number;
 }
 
 interface InspirationItem {
@@ -63,6 +64,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isLoading,
   activeProvider,
   activeModel,
+  totalChunks,
 }) => {
   const [input, setInput] = useState('');
   const [selectedSkill, setSelectedSkill] = useState<'chat' | 'ship30' | 'artifact'>('chat');
@@ -202,7 +204,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                 </span>
-                <span className="truncate">5,993 chunks grounded</span>
+                <span className="truncate">{(totalChunks || 11471).toLocaleString()} chunks grounded</span>
               </span>
             )}
             {selectedSkill === 'ship30' && (
