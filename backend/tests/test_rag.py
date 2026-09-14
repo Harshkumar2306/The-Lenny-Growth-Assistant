@@ -101,3 +101,24 @@ async def test_follow_up_not_poisoned_by_rejected_previous_turn():
     assert done.get("rejection") is not True
     cites = next(e for e in events if e["type"] == "citations")["data"]
     assert len(cites) > 0
+
+def test_long_deliverable_prompt_not_force_rejected():
+    """Rich multi-sentence deliverable prompts referencing genuine domain guests
+    and frameworks (e.g. Elena Verna PLG simulator) must never be rejected by the
+    lexical coverage gate."""
+    if len(rag_engine.chunks) < 2000:
+        pytest.skip("requires the full 150-episode index")
+    query = (
+        "Build an interactive B2B Product-Led Growth (PLG) Loop Simulator based on "
+        "Elena Verna's Lenny's Podcast frameworks. Include interactive sliders for "
+        "Monthly Active Signups, Free-to-Paid Conversion Rate (0–10%), Net Dollar "
+        "Retention (70–140%), and Viral Coefficient / K-factor (0–1.5). Dynamically "
+        "calculate 12-month ARR projections with real-time feedback, flag the "
+        "'leakiest bucket' in the funnel, and provide Elena Verna's specific tactical "
+        "experiments to fix that bottleneck."
+    )
+    chunks, citations, score = rag_engine.search(query, top_k=5)
+    assert score >= 0.12
+    assert len(chunks) > 0
+    assert any("elena" in c.guest.lower() for c in citations)
+

@@ -36,20 +36,22 @@ class RAGEngine:
             logger.error(f"Failed to load search index: {e}")
 
     def _content_tokens(self, query_tokens: List[str]) -> List[str]:
-        """Keep only 'content' tokens: IDF >= 5.0, i.e. terms appearing in
-        fewer than ~1.5% of chunks. Conversational filler (advice, best,
-        help, growth, say) falls below the line and would otherwise dilute
-        the coverage gate for short queries."""
+        """Keep only 'content' tokens: terms with domain or guest specificity (IDF >= 2.8).
+        Conversational filler (say, think, good, much) and generic podcast words (growth,
+        product, lenny, episode) fall below IDF 2.8.
+        Skip digits and short noise tokens."""
         vocab = self.tfidf.vocabulary_
         idf_arr = self.tfidf.idf_
         content = []
         for t in query_tokens:
+            if len(t) < 2 or t.isdigit():
+                continue
             if t in vocab:
-                if idf_arr[vocab[t]] >= 5.0:
+                if idf_arr[vocab[t]] >= 2.8:
                     content.append(t)
             else:
                 content.append(t)  # out-of-vocabulary tokens are rare by definition
-        return content or query_tokens
+        return content or [t for t in query_tokens if len(t) >= 2 and not t.isdigit()] or query_tokens
 
     def search(self, query: str, top_k: int = 5, guest_filter: str = None) -> Tuple[List[Dict[str, Any]], List[CitationItem], float]:
         """
@@ -74,15 +76,20 @@ class RAGEngine:
             "please", "want", "need",
             # Conversion-request boilerplate from the "Turn into Ship 30" button
             # ("Convert this strategic insight into a Ship 30 for 30 essay...").
-            # These words are rare in the corpus (high IDF) but carry no domain
-            # meaning; counting them as content tokens force-rejects the
-            # documented ship30 conversion flow.
             "convert", "converting", "turn", "turning", "into",
             "essay", "essays", "retrieve", "retrieved", "retrieving",
+            # Deliverable and prompt instruction words
+            "simulator", "simulators", "slider", "sliders", "dashboard", "dashboards",
+            "calculate", "calculating", "calculator", "calculators", "projection",
+            "projections", "template", "templates", "matrix", "matrices",
+            "include", "including", "based", "provide", "providing", "dynamically",
+            "guide", "step", "steps",
         }
         query_clean = query.strip()
         all_tokens = re.findall(r'\w+', query_clean.lower())
-        query_tokens = [t for t in all_tokens if t not in STOP_WORDS]
+        query_tokens = [t for t in all_tokens if t not in STOP_WORDS and len(t) >= 2 and not t.isdigit()]
+        if not query_tokens:
+            query_tokens = [t for t in all_tokens if len(t) >= 2 and not t.isdigit()]
         if not query_tokens:
             query_tokens = all_tokens
         if not query_tokens:
@@ -94,8 +101,9 @@ class RAGEngine:
         bm25_raw_scores = self.bm25.get_scores(query_tokens)
         bm25_norm = np.clip(bm25_raw_scores / 15.0, 0.0, 1.0)
 
-        # 2. TF-IDF Cosine Similarity
-        query_vec = self.tfidf.transform([query_clean])
+        # 2. TF-IDF Cosine Similarity (strip stopwords to focus on content semantics)
+        q_str = " ".join(query_tokens) if query_tokens else query_clean
+        query_vec = self.tfidf.transform([q_str])
         tfidf_sim = (self.tfidf_matrix * query_vec.T).toarray().flatten()
 
         # 3. Hybrid Score with Semantic Gating (prevents incidental single-keyword hits)
@@ -142,11 +150,20 @@ class RAGEngine:
         if len(content_tokens) >= 2 and top_indices.size:
             best_idx = top_indices[0]
             best_text = self.chunks[best_idx]["text"].lower()
-            best_coverage = sum(1 for t in content_tokens if t in best_text) / len(content_tokens)
-            if len(content_tokens) >= 3 and best_coverage < 0.5:
-                max_score = 0.0
-            elif len(content_tokens) == 2 and best_coverage < 1.0:
-                max_score = 0.0
+            matched = [t for t in content_tokens if t in best_text]
+            best_coverage = len(matched) / len(content_tokens)
+            if len(content_tokens) == 2:
+                if len(matched) < 2:
+                    max_score = 0.0
+            elif len(content_tokens) <= 7:
+                if best_coverage < 0.5:
+                    max_score = 0.0
+            else:
+                # Long queries (> 7 content tokens): rich deliverable prompts
+                # cannot be expected to match >50% of 20+ words in a single 250-word chunk.
+                # Must match at least 4 distinct content terms, or at least 3 with >= 25% coverage.
+                if len(matched) < 4 and (len(matched) < 3 or best_coverage < 0.25):
+                    max_score = 0.0
 
         for idx in top_indices:
             score = float(gated_scores[idx])
