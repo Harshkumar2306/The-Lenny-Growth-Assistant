@@ -25,6 +25,9 @@ build/
 *.sqlite
 *.sqlite3
 *.db
+*.db-*
+*.db-shm
+*.db-wal
 data/*.db-*
 data/chroma_db/
 data/search_index.pkl

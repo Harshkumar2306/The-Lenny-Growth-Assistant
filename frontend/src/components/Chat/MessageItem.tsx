@@ -41,16 +41,24 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Strip artifact markers from inline chat to keep conversation clean and point to side panel
+  // Format artifact markers in inline chat: render markdown deliverables directly, while summarizing HTML prototypes
   let cleanContent = message.content.replace(
     /:::artifact\s*(?:\{([^}]*)\}|[^\n]*)\s*([\s\S]*?)(?::::|$)/g,
-    (match, p1) => {
+    (match, p1, p2) => {
       const attrs = p1 || match;
-      const titleMatch = attrs.match(/title=["']?([^"'\n}]+)["']?/);
+      const typeMatch = attrs.match(/type=["']?([^"'\s}]+)["']?/i);
+      const type = typeMatch ? typeMatch[1].toLowerCase() : 'markdown';
+      const titleMatch = attrs.match(/title=["']?([^"'\n}]+)["']?/i);
       const title = titleMatch ? titleMatch[1] : 'Generated Artifact';
-      const typeMatch = attrs.match(/type=["']?([^"'\s}]+)["']?/);
-      const type = typeMatch ? typeMatch[1] : 'markdown';
-      return `\n\n> 📦 **Created Artifact:** *${title}* (${type.toUpperCase()}) — Open in side-by-side Artifact Viewer.\n\n`;
+      const body = (p2 || '').trim();
+
+      // For markdown artifacts (e.g. Ship 30 essays, PRDs, frameworks), keep the full formatted essay in the chat!
+      if (type === 'markdown' || type === 'essay' || (!body.includes('<!DOCTYPE') && !body.includes('<html'))) {
+        return `\n\n${body}\n\n`;
+      }
+
+      // For HTML prototype artifacts, render a clean card pointing to the interactive sandbox
+      return `\n\n> ⚡ **Interactive Prototype Generated:** *${title}* — Explore and interact in the Deliverables panel on the right.\n\n`;
     }
   );
   // Clean any leftover orphan ::: tags

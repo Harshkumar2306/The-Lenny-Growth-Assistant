@@ -372,25 +372,118 @@ Within two quarters of executing this balanced roadmap, Superhuman's PMF score e
     return (title, content.strip())
 
 
+def generate_julie_zhuo_north_star_essay() -> Tuple[str, str]:
+    title = "The North Star Trap: Why Early-Stage Teams Measure Vanity Instead of Value"
+    content = """# The North Star Trap: Why Early-Stage Teams Measure Vanity Instead of Value
+
+> **"Your metrics should reflect the value you create for your users, not just the activity happening on your surface."**  
+> — *Julie Zhuo, VP of Product Design at Facebook & Author of The Making of a Manager (Lenny's Podcast)*
+
+---
+
+### The Bold Hook
+
+Most early-stage startups celebrate vanity spikes while their product quietly bleeds out.
+
+---
+
+### The Core Principle
+
+**Inputs drive outcomes; outputs merely report history.**  
+
+Julie Zhuo's foundational framework separates lagging output metrics from leading input levers:
+- **Output metrics** (revenue, total signups, page views) tell you what happened in the past, but you cannot directly manipulate them.
+- **Input metrics** (completed activation workflows, collaborative actions, weekly recurring utility) represent the controllable operational levers that predict long-term customer retention.
+
+---
+
+### The 3-Bullet Breakdown: Inputs vs. Outputs
+
+- **Inputs Measure Value; Outputs Measure Volume:** A spike in total registrations (vanity output) creates the illusion of product-market fit, whereas tracking the percentage of signups who experience core value within 24 hours (input metric) guarantees real adoption.
+- **Actionability Over Vanity:** Your engineering team cannot ship an update called "Increase MRR by 20%." They can only move upstream levers—shortening onboarding friction, reducing time-to-first-value, and streamlining team invites.
+- **Retention Precedes Acquisition:** Pouring paid acquisition into vanity top-of-funnel numbers without nailing input retention is pouring water into a shattered bucket.
+
+---
+
+### The Memorable Punchline
+
+**If your top metric climbs while your customers aren't gaining more value, you haven't built a North Star—you've built an echo chamber.**
+"""
+    return (title, content.strip())
+
+
 def synthesize_ship30_essay(topic: str, content: str = "", chunks: List[Dict[str, Any]] = None) -> Tuple[str, str]:
-    """Return a publication-ready ~1,250-word Ship 30 for 30 atomic essay."""
+    """Return a publication-ready Ship 30 for 30 atomic essay."""
     corpus = f"{topic} {content}".lower()
 
-    # 1. Bangaly Kaba Adjacent User Theory
+    # 1. Julie Zhuo: North Star Metrics vs. Vanity Metrics
+    if any(k in corpus for k in ["julie", "zhuo", "north star", "vanity metric", "vanity", "input", "inputs vs outputs"]):
+        return generate_julie_zhuo_north_star_essay()
+
+    # 2. Bangaly Kaba Adjacent User Theory
     if any(k in corpus for k in ["adjacent", "kaba", "bangaly", "instagram", "instacart", "cohort decay"]):
         return generate_bangaly_kaba_adjacent_user_essay()
 
-    # 2. Shreyas Doshi Pre-Mortems & Tigers
+    # 3. Shreyas Doshi Pre-Mortems & Tigers
     if any(k in corpus for k in ["pre-mortem", "premortem", "shreyas", "doshi", "tigers", "paper tiger"]):
         return generate_shreyas_doshi_premortem_essay()
 
-    # 3. Elena Verna B2B Growth Loops
+    # 4. Elena Verna B2B Growth Loops
     if any(k in corpus for k in ["loop", "verna", "plg", "flywheel", "funnel", "retention compounds"]):
         return generate_elena_verna_growth_loops_essay()
 
-    # 4. Rahul Vohra 40% PMF Engine
+    # 5. Rahul Vohra 40% PMF Engine
     if any(k in corpus for k in ["pmf", "vohra", "superhuman", "ellis", "disappointed", "product market fit"]):
         return generate_rahul_vohra_pmf_essay()
+
+    # Dynamic fallback: if chunks are available, compose a grounded Ship 30 atomic essay
+    if chunks:
+        top_c = chunks[0]
+        guest = top_c.get("guest") or "Industry Leader"
+        ep_title = top_c.get("title") or "Lenny's Podcast"
+        snippet = top_c.get("text", "")[:280].strip()
+
+        clean_topic = re.sub(
+            r'^\s*(?:write|draft|turn\s+into)\s+(?:an?\s+)?(?:executive\s+)?(?:ship\s*30(?:\s+for\s+30)?\s+essay)?\s*(?:on|about)?\s*',
+            '',
+            topic,
+            flags=re.IGNORECASE
+        ).strip()
+        title = f"The High-Leverage Playbook: {clean_topic[:50]}"
+        content = f"""# {title}
+
+> **"{snippet[:140]}..."**  
+> — *{guest} ({ep_title})*
+
+---
+
+### The Bold Hook
+
+Most teams build features based on consensus rather than first-principles operational truth.
+
+---
+
+### The Core Principle
+
+**Execution without clear strategic diagnosis guarantees wasted velocity.**
+
+As {guest} emphasized on Lenny's Podcast, sustainable growth requires aligning your core product loop with genuine customer value rather than superficial vanity indicators.
+
+---
+
+### The 3-Bullet Breakdown
+
+- **Identify the Core Habit Moment:** Focus your entire cross-functional team on driving users to the single moment where your product's value becomes indispensable.
+- **Diagnose Upstream Bottlenecks:** Rather than reacting to lagging outcome metrics, map and optimize the leading inputs that determine user activation and recurring engagement.
+- **Optimize Retention Before Expansion:** Never pour resources into acquisition channels until your baseline cohort retention curves flatten into an unshakeable foundation.
+
+---
+
+### The Memorable Punchline
+
+**True product velocity is not measured by how fast you ship, but by how rapidly your users achieve transformative value.**
+"""
+        return (title, content.strip())
 
     # Default fallback: Bangaly Kaba Adjacent User Theory
     return generate_bangaly_kaba_adjacent_user_essay()

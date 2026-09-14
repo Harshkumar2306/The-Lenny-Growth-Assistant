@@ -267,8 +267,13 @@ export const App: React.FC = () => {
         if (currentSessionId) {
           const history = await fetchSessionHistory(currentSessionId);
           setMessages(history.messages);
-          setArtifacts(history.artifacts);
-          if (history.artifacts.length > 0) {
+          if (history.artifacts && history.artifacts.length > 0) {
+            setArtifacts(prev => {
+              const byId = new Map<string, Artifact>();
+              prev.forEach(a => byId.set(a.id, a));
+              history.artifacts.forEach((a: Artifact) => byId.set(a.id, a));
+              return Array.from(byId.values());
+            });
             const latest = history.artifacts[history.artifacts.length - 1];
             setActiveArtifact(latest);
             if (isDesktop) {

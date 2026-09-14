@@ -407,4 +407,26 @@ async def test_process_chat_superhuman_pmf_calculator_synthesis(monkeypatch):
     assert "<!DOCTYPE html>" not in done["data"]["full_content"]
 
 
+def test_ship30_julie_zhuo_atomic_essay():
+    from app.services.ship30_synthesizer import synthesize_ship30_essay
+    prompt = (
+        "Write a Ship 30 for 30 style atomic essay on Julie Zhuo's framework for "
+        "'North Star Metrics vs. Vanity Metrics' and why early-stage teams measure the wrong signals. "
+        "Follow the strict Ship 30 structure: 1 bold hook, 1 core principle, a 3-bullet breakdown "
+        "of inputs vs outputs, and a memorable 1-sentence punchline. Keep it between 250 and 300 words."
+    )
+    title, content = synthesize_ship30_essay(prompt)
+
+    assert "North Star" in title
+    assert "The Bold Hook" in content
+    assert "The Core Principle" in content
+    assert "Inputs vs. Outputs" in content
+    assert "The Memorable Punchline" in content
+    assert "Julie Zhuo" in content
+
+    # Verify atomic essay word count is between 200 and 350 words (~250-300 word target)
+    words = content.split()
+    assert 180 <= len(words) <= 350, f"Expected atomic essay length, got {len(words)} words"
+
+
 

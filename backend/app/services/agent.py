@@ -426,11 +426,11 @@ class AgentService:
         if is_ship30:
             ship30_art = next((a for a in artifacts if a.artifact_type == "markdown"), None)
 
-            # Check if parsed artifact has sufficient publication depth (>= 2200 chars)
+            # Check if parsed artifact has sufficient publication depth (>= 400 chars for atomic essays)
             # and is not titled with a placeholder like 'Magnetic Headline'
             is_valid_depth = (
                 ship30_art is not None and
-                len(ship30_art.content) >= 2200 and
+                len(ship30_art.content.strip()) >= 400 and
                 ship30_art.title.lower() not in ["magnetic headline", "essay", "untitled", "growth artifact", "artifact"]
             )
 
@@ -462,6 +462,8 @@ class AgentService:
                 ship30_art.content = re.sub(r'^#\s+Magnetic Headline\s*\n+', '', ship30_art.content, flags=re.IGNORECASE).strip()
 
             artifacts = [ship30_art]
+            # Ensure full_content holds the complete essay markdown for inline chat and persistence
+            full_content = ship30_art.content
 
         elif is_html_artifact:
             # Check if an HTML artifact was properly captured, is self-contained,

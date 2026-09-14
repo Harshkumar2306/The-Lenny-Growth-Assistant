@@ -152,20 +152,28 @@ async def send_chat_message(payload: ChatRequest, db: AsyncSession = Depends(get
                     # (Zero-content turns, e.g. a provider preflight error,
                     # are not persisted — the user message is already saved.)
                     try:
-                        if full_assistant_reply:
+                        final_reply = (done_data.get("full_content") if done_data else None) or full_assistant_reply
+                        if not final_reply and created_artifacts:
+                            art = created_artifacts[0]
+                            if art.get("artifact_type") == "html":
+                                final_reply = f"### Interactive Prototype: {art.get('title', 'Deliverable')}\n\nI have generated an interactive prototype grounded in the podcast insights. You can interact with the live simulator in the **Deliverables panel on the right**."
+                            else:
+                                final_reply = art.get("content") or f"Generated {art.get('title', 'Deliverable')}."
+
+                        if final_reply or created_artifacts:
                             await _persist_assistant_turn(
                                 session_id=session_id,
                                 message=payload.message,
-                                full_reply=full_assistant_reply,
+                                full_reply=final_reply,
                                 citations_data=citations_data,
                                 artifacts=created_artifacts,
                             )
-                            done_data = {**done_data, "persisted": True}
+                            done_data = {**(done_data or {}), "persisted": True, "full_content": final_reply}
                         else:
-                            done_data = {**done_data, "persisted": False}
+                            done_data = {**(done_data or {}), "persisted": False}
                     except Exception as e:
                         logger.error(f"Failed to persist assistant turn: {type(e).__name__}: {e}")
-                        done_data = {**done_data, "persisted": False}
+                        done_data = {**(done_data or {}), "persisted": False}
 
                 yield f"data: {json.dumps(event if event_type != 'done' else {'type': 'done', 'data': done_data}, default=str)}\n\n"
 
@@ -215,13 +223,21 @@ async def _run_non_streaming(payload: ChatRequest, session: ChatSession, history
         elif event_type == "done":
             done_data = event["data"]
 
+    final_reply = (done_data.get("full_content") if done_data else None) or full_reply
+    if not final_reply and created_artifacts:
+        art = created_artifacts[0]
+        if art.get("artifact_type") == "html":
+            final_reply = f"### Interactive Prototype: {art.get('title', 'Deliverable')}\n\nI have generated an interactive prototype grounded in the podcast insights. You can interact with the live simulator in the **Deliverables panel on the right**."
+        else:
+            final_reply = art.get("content") or f"Generated {art.get('title', 'Deliverable')}."
+
     persisted = False
-    if full_reply:
+    if final_reply or created_artifacts:
         try:
             await _persist_assistant_turn(
                 session_id=session.id,
                 message=payload.message,
-                full_reply=full_reply,
+                full_reply=final_reply,
                 citations_data=citations_data,
                 artifacts=created_artifacts,
             )
@@ -232,7 +248,7 @@ async def _run_non_streaming(payload: ChatRequest, session: ChatSession, history
     return JSONResponse({
         "session_id": session.id,
         "title": session.title,
-        "content": full_reply,
+        "content": final_reply,
         "citations": citations_data,
         "artifacts": created_artifacts,
         "status_updates": status_events,

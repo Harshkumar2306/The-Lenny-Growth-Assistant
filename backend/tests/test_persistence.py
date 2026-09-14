@@ -73,3 +73,74 @@ async def test_database_persistence_hierarchy():
         await db.delete(res_msg)
         await db.delete(res_sess)
         await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_assistant_turn_persistence_with_artifacts():
+    from app.core.database import init_db_engine, create_tables, _sessionmaker
+    from app.api.chat import _persist_assistant_turn
+    from app.api.sessions import get_session_history
+
+    await init_db_engine()
+    await create_tables()
+
+    session_id = str(uuid.uuid4())
+    async with _sessionmaker() as db:
+        session = ChatSession(
+            id=session_id,
+            title="Artifact Persistence Test",
+            provider="ollama",
+            model_name="llama3.2:1b"
+        )
+        db.add(session)
+        await db.commit()
+
+        # Turn 1: Ship 30 Essay artifact
+        art1_id = str(uuid.uuid4())
+        await _persist_assistant_turn(
+            session_id=session_id,
+            message="Write a Ship 30 essay on Julie Zhuo's North Star Metrics",
+            full_reply="Here is your Ship 30 essay on North Star Metrics.",
+            citations_data=[{"guest": "Julie Zhuo", "title": "North Star Metrics"}],
+            artifacts=[{
+                "id": art1_id,
+                "artifact_type": "markdown",
+                "title": "The North Star Trap",
+                "content": "# The North Star Trap\n\nMost early-stage teams measure vanity..."
+            }]
+        )
+
+        # Turn 2: Interactive HTML prototype
+        art2_id = str(uuid.uuid4())
+        await _persist_assistant_turn(
+            session_id=session_id,
+            message="Build an interactive HTML/CSS PLG Loop simulator",
+            full_reply="### Interactive Prototype: Elena Verna's PLG Flywheel Simulator",
+            citations_data=[{"guest": "Elena Verna", "title": "PLG Loops"}],
+            artifacts=[{
+                "id": art2_id,
+                "artifact_type": "html",
+                "title": "Elena Verna's PLG Flywheel Simulator",
+                "content": "<!DOCTYPE html><html><body>Simulator</body></html>"
+            }]
+        )
+
+        # Query session history (as frontend does on done)
+        history = await get_session_history(session_id, db)
+        assert len(history["messages"]) == 2, "Both assistant turns must be persisted"
+        assert len(history["artifacts"]) == 2, "Both deliverables must be retained across turns"
+
+        types = [a["artifact_type"] for a in history["artifacts"]]
+        assert "markdown" in types, "Turn 1 Ship 30 artifact must be retained"
+        assert "html" in types, "Turn 2 HTML simulator artifact must be retained"
+
+        # Cleanup
+        for a in await db.scalars(select(ChatArtifact).where(ChatArtifact.session_id == session_id)):
+            await db.delete(a)
+        for m in await db.scalars(select(ChatMessage).where(ChatMessage.session_id == session_id)):
+            await db.delete(m)
+        sess = await db.get(ChatSession, session_id)
+        if sess:
+            await db.delete(sess)
+        await db.commit()
+
