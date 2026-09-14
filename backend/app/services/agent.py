@@ -7,6 +7,7 @@ from app.core.logging import logger
 from app.services.rag_engine import rag_engine
 from app.services.llm_gateway import llm_gateway, LLMProviderError
 from app.services.ship30_skill import SHIP30_SYSTEM_PROMPT, build_ship30_prompt
+from app.services.html_artifact_synthesizer import synthesize_html_artifact
 from app.schemas.chat_schemas import CitationItem, ArtifactItem
 
 BASE_SYSTEM_PROMPT = """You are "The Lenny Growth Assistant", an elite product management and growth advisor grounded strictly in the collective wisdom of Lenny's Podcast interviews with 300+ world-class founders and product leaders.
@@ -22,24 +23,14 @@ BASE_SYSTEM_PROMPT = """You are "The Lenny Growth Assistant", an elite product m
      "Based on the transcripts in the Lenny's Podcast knowledge base, this topic is not discussed by any of the guests. I can only provide advice grounded in Lenny's podcast repository (product management, growth loops, monetization, hiring, and company building)."
    - Never invent or hallucinate advice outside of the podcast transcripts.
 
-3. ARTIFACT GENERATION:
-   - When the user asks for a reusable deliverable (such as a PRD template, strategy framework, complete HTML/CSS prototype, interactive calculator, or Ship 30 essay), encapsulate it cleanly in an artifact block:
-     :::artifact{id="artifact-uuid" type="markdown" title="Descriptive Title"}
-     ...formatted markdown content...
-     :::
-     or for interactive widgets/prototypes:
-     :::artifact{id="artifact-uuid" type="html" title="Interactive PMF Calculator"}
-     <!DOCTYPE html>
-     ...complete self-contained HTML with CSS & JS...
-     :::
-
-4. PRESENTATION & FORMATTING STANDARDS:
+3. PRESENTATION & FORMATTING STANDARDS:
    - Always structure your response using clear Markdown headings (e.g. `### Core Framework`, `### Tactical Takeaways`).
    - Use bullet points (`- `) with **bold lead-ins** for every actionable insight (e.g. `- **Point Name**: Explanation...`).
    - When presenting comparative analysis, competitor breakdowns, or features, ALWAYS format them as clean Markdown tables:
      | Dimension / Feature | Option A | Option B |
      | :--- | :--- | :--- |
    - Never output flat unformatted text. Separate distinct concepts with clean double-spacing.
+   - Provide your direct conversational response in Markdown. Do NOT wrap your answer in :::artifact blocks.
 """
 
 class AgentService:
@@ -61,25 +52,47 @@ class AgentService:
     def _detect_intent(self, message: str, skill: Optional[str]) -> Dict[str, bool]:
         """Route the request to chat / ship30 / html-artifact modes.
 
-        The explicit UI skill selection is authoritative; text heuristics only
-        apply when the user is in the default chat mode, and they use
-        word-boundary matching to avoid substring false positives.
+        Prompt content is authoritative: explicit format requests in the prompt
+        always override sticky UI tab selections.
         """
         msg_lower = message.lower()
 
+        # 1. High-confidence explicit Ship 30 essay intent in prompt
+        is_prompt_ship30 = bool(
+            re.search(
+                r'\b(?:ship\s*30\s+for\s+30|ship\s*30\s+essay|ship\s*30|atomic\s+essay|turn\s+into\s+(?:a\s+)?ship\s*30|write\s+(?:a\s+)?ship\s*30)\b',
+                msg_lower
+            )
+        )
+
+        # 2. High-confidence explicit HTML / Prototype / Simulator intent in prompt
+        is_prompt_html = bool(
+            re.search(
+                r'\b(?:html|css|prototype|widget|calculator|simulator|dashboard)\b|\b(?:interactive\s+code|interactive\s+tool|interactive\s+sliders|pmf\s+engine)\b',
+                msg_lower
+            )
+        )
+
+        # Disambiguate when prompt mentions both (e.g. "Ship 30 essay about HTML dashboards")
+        if is_prompt_ship30 and is_prompt_html:
+            if re.search(r'\b(?:ship\s*30|essay|article|post)\b', msg_lower):
+                return {"ship30": True, "html": False}
+            return {"ship30": False, "html": True}
+
+        if is_prompt_ship30:
+            return {"ship30": True, "html": False}
+
+        if is_prompt_html:
+            return {"ship30": False, "html": True}
+
+        # 3. If prompt is neutral, fall back to explicit UI selection
         if skill == "ship30":
             return {"ship30": True, "html": False}
         if skill == "artifact":
             return {"ship30": False, "html": True}
 
-        is_ship30 = bool(re.search(r'\bship\s*30\b', msg_lower))
-        is_html = bool(
-            re.search(r'\bhtml\b|\bcss\b|\bprototype\b|\bwidget\b|\bcalculator\b|\bdashboard\b|\binteractive\b', msg_lower)
-        )
-        # A ship30 ask inside chat mode never doubles as an HTML request.
-        if is_ship30:
-            is_html = False
-        return {"ship30": is_ship30, "html": is_html}
+        # 4. Default: pure Grounded Q&A Chat
+        return {"ship30": False, "html": False}
 
     async def process_chat(
         self,
@@ -140,6 +153,16 @@ class AgentService:
             last_user_msg = next((h["content"] for h in reversed(history) if h.get("role") == "user"), "")
             if last_user_msg:
                 retrieval_query = f"{last_user_msg[:120]} {message}"
+
+        # Clean meta-prompt deliverable phrasing from retrieval query so RAG scores the core domain topic
+        topic_cleaned = re.sub(
+            r'^\s*(?:write|draft|create|generate|turn\s+into|build|make)\s+(?:an?\s+)?(?:executive\s+)?(?:ship\s*30(?:\s+for\s+30)?\s+essay|interactive\s+html\s+prototype|atomic\s+essay|prototype|widget|simulator|calculator)?\s*(?:on|about|for|based\s+on)?\s*',
+            '',
+            retrieval_query,
+            flags=re.IGNORECASE
+        ).strip()
+        if topic_cleaned and len(topic_cleaned.split()) >= 2:
+            retrieval_query = topic_cleaned
 
         # Retrieval queries are capped at a topic-bearing prefix. The
         # "Turn into Ship 30 for 30 Essay" button pastes the full grounded
@@ -264,8 +287,7 @@ class AgentService:
                 f"2. Use `### ` Markdown headings to clearly separate distinct themes or frameworks.\n"
                 f"3. Use bullet points (`- `) with **bold lead-ins** for every tactical takeaway.\n"
                 f"4. If presenting a comparison, framework, or competitor breakdown, format it as a clean Markdown table with headers.\n"
-                f"5. If a reusable guide, checklist, or template is requested, encapsulate it in:\n"
-                f":::artifact{{id=\"{str(uuid.uuid4())[:8]}\" type=\"markdown\" title=\"...\"}}\n...\n:::"
+                f"5. Answer directly in conversational Markdown. Do NOT use :::artifact tags."
             )
 
         # Build messages payload
@@ -303,55 +325,101 @@ class AgentService:
             }
             return
 
-        # Step 5: Parse artifacts from generated content
-        artifacts = self._parse_artifacts(full_content, session_id)
+        # Step 5: Parse artifacts or synthesize deliverables
+        if is_ship30 or is_html_artifact:
+            artifacts = self._parse_artifacts(full_content, session_id)
+        else:
+            # Pure Grounded Q&A: Never emit artifacts, strip any stray artifact tags
+            artifacts = []
+            full_content = re.sub(
+                r':::artifact\s*(?:\{[^}]*\}|[^\n]*)\s*([\s\S]*?)(?::::|$)',
+                r'\1',
+                full_content
+            ).strip()
+            full_content = re.sub(r'^\s*:::\s*$', '', full_content, flags=re.MULTILINE).strip()
 
         # Resilient fallback: auto-package artifact if requested but model forgot delimiter tags
-        if not artifacts:
-            if is_ship30 and len(full_content) > 120:
-                title_match = re.search(r'^#\s+(.+)$', full_content, re.MULTILINE)
-                essay_title = title_match.group(1).strip() if title_match else f"Ship 30 Essay: {message[:40]}"
-                artifacts.append(ArtifactItem(
-                    id=str(uuid.uuid4()),
-                    session_id=session_id,
-                    artifact_type="markdown",
-                    title=essay_title,
-                    content=full_content,
-                    version=1
-                ))
-            elif is_html_artifact and ("<!DOCTYPE html>" in full_content or "<html" in full_content or "```html" in full_content):
-                html_code = full_content
-                html_block = re.search(r'```html\s*(.*?)\s*```', full_content, re.DOTALL)
-                if html_block:
-                    html_code = html_block.group(1)
-                elif "<!DOCTYPE html>" in full_content:
-                    start_idx = full_content.find("<!DOCTYPE html>")
-                    end_idx = full_content.find("</html>", start_idx)
-                    if end_idx != -1:
-                        html_code = full_content[start_idx:end_idx + 7]
-                    else:
-                        html_code = full_content[start_idx:]
-                elif "<html" in full_content:
-                    start_idx = full_content.find("<html")
-                    end_idx = full_content.find("</html>", start_idx)
-                    if end_idx != -1:
-                        html_code = full_content[start_idx:end_idx + 7]
-                    else:
-                        html_code = full_content[start_idx:]
+        if is_ship30 and not artifacts and len(full_content) > 120:
+            title_match = re.search(r'^#\s+(.+)$', full_content, re.MULTILINE)
+            essay_title = title_match.group(1).strip() if title_match else f"Ship 30 Essay: {message[:40]}"
+            artifacts.append(ArtifactItem(
+                id=str(uuid.uuid4()),
+                session_id=session_id,
+                artifact_type="markdown",
+                title=essay_title,
+                content=full_content,
+                version=1
+            ))
+        elif is_html_artifact:
+            # Check if an HTML artifact was properly captured and is self-contained
+            valid_html_art = None
+            for a in artifacts:
+                if a.artifact_type == "html":
+                    c_lower = a.content.lower()
+                    if (
+                        len(a.content) >= 600 and
+                        ("<input" in c_lower or "<button" in c_lower) and
+                        "styles.css" not in c_lower and
+                        "script.js" not in c_lower
+                    ):
+                        valid_html_art = a
+                        break
 
-                # Clean any stray leading non-HTML noise before the first opening tag
-                first_tag = re.search(r'<!DOCTYPE|<html|<head|<body|<div|<main|<section|<header', html_code, re.IGNORECASE)
-                if first_tag and first_tag.start() > 0:
-                    html_code = html_code[first_tag.start():].strip()
+            if not valid_html_art:
+                # Discard low-quality stub artifacts
+                artifacts = [a for a in artifacts if a.artifact_type != "html"]
 
-                artifacts.append(ArtifactItem(
-                    id=str(uuid.uuid4()),
-                    session_id=session_id,
-                    artifact_type="html",
-                    title=f"Interactive Prototype: {message[:30]}",
-                    content=html_code,
-                    version=1
-                ))
+                html_code = ""
+                if "<!DOCTYPE html>" in full_content or "<html" in full_content or "```html" in full_content:
+                    html_block = re.search(r'```html\s*(.*?)\s*```', full_content, re.DOTALL)
+                    if html_block:
+                        html_code = html_block.group(1)
+                    elif "<!DOCTYPE html>" in full_content:
+                        start_idx = full_content.find("<!DOCTYPE html>")
+                        end_idx = full_content.find("</html>", start_idx)
+                        html_code = full_content[start_idx:end_idx + 7] if end_idx != -1 else full_content[start_idx:]
+                    elif "<html" in full_content:
+                        start_idx = full_content.find("<html")
+                        end_idx = full_content.find("</html>", start_idx)
+                        html_code = full_content[start_idx:end_idx + 7] if end_idx != -1 else full_content[start_idx:]
+
+                    first_tag = re.search(r'<!DOCTYPE|<html|<head|<body|<div|<main|<section|<header', html_code, re.IGNORECASE)
+                    if first_tag and first_tag.start() > 0:
+                        html_code = html_code[first_tag.start():].strip()
+
+                c_lower = html_code.lower()
+                is_usable = (
+                    len(html_code) >= 600 and
+                    "<body" in c_lower and
+                    ("<input" in c_lower or "<button" in c_lower) and
+                    "styles.css" not in c_lower and
+                    "script.js" not in c_lower
+                )
+
+                # If LLM produced a stub or non-executable HTML, trigger bulletproof synthesizer!
+                if not is_usable:
+                    synth_title, synth_html = synthesize_html_artifact(message, full_content, chunks)
+                    art_id = str(uuid.uuid4())
+                    html_art = ArtifactItem(
+                        id=art_id,
+                        session_id=session_id,
+                        artifact_type="html",
+                        title=synth_title,
+                        content=synth_html,
+                        version=1
+                    )
+                    artifacts.append(html_art)
+                else:
+                    art_id = str(uuid.uuid4())
+                    html_art = ArtifactItem(
+                        id=art_id,
+                        session_id=session_id,
+                        artifact_type="html",
+                        title=f"Interactive Prototype: {message[:35]}",
+                        content=html_code,
+                        version=1
+                    )
+                    artifacts.append(html_art)
 
         for art in artifacts:
             yield {"type": "artifact", "data": art.model_dump(mode="json")}

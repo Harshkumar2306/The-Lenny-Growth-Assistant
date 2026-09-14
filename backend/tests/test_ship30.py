@@ -220,3 +220,113 @@ async def test_ship30_convert_button_long_message_not_rejected(monkeypatch):
     done = next(e for e in events if e["type"] == "done")
     assert done["data"].get("rejection") is not True
 
+def test_prompt_first_auto_detection_overrides_sticky_tab():
+    """Explicit prompt keywords must override whatever sticky tab is selected in UI."""
+    # When user was on ship30 tab, but pasted an interactive HTML prompt:
+    html_prompt = "Build an interactive HTML prototype for Rahul Vohra's Superhuman 40% PMF Engine with sliders and interactive metrics"
+    assert agent_service._detect_intent(html_prompt, skill="ship30") == {"ship30": False, "html": True}
+
+    # When user was on artifact tab, but pasted a Ship 30 essay prompt:
+    ship30_prompt = "Write an executive Ship 30 for 30 essay on why user retention compounds while acquisition funnels decay"
+    assert agent_service._detect_intent(ship30_prompt, skill="artifact") == {"ship30": True, "html": False}
+
+    # When user was on chat tab, normal comparison question must be pure chat:
+    chat_prompt = "Compare Elena Verna's perspective on product-led growth (PLG) loops with Casey Winters' framework on retention flywheels."
+    assert agent_service._detect_intent(chat_prompt, skill="chat") == {"ship30": False, "html": False}
+
+    # Turn into Ship 30 button action:
+    convert_prompt = "Turn into Ship 30 Essay (~1,250 words) based on Shreyas Doshi pre-mortems"
+    assert agent_service._detect_intent(convert_prompt, skill="chat") == {"ship30": True, "html": False}
+
+    # Build Interactive HTML button action:
+    build_proto_prompt = "Build an interactive HTML prototype and calculator widget based on this strategic insight"
+    assert agent_service._detect_intent(build_proto_prompt, skill="chat") == {"ship30": False, "html": True}
+
+def test_html_artifact_synthesizer_templates():
+    """Verify that html_artifact_synthesizer returns valid, self-contained HTML applications."""
+    from app.services.html_artifact_synthesizer import (
+        synthesize_html_artifact,
+        generate_pmf_engine_html,
+        generate_jtbd_switching_simulator_html,
+        generate_plg_loop_simulator_html,
+    )
+
+    # Superhuman PMF Engine
+    title, html = synthesize_html_artifact("Build an interactive prototype for Superhuman 40% PMF Engine")
+    assert "Superhuman 40% PMF Engine" in title
+    assert "<!DOCTYPE html>" in html
+    assert "tailwindcss" in html
+    assert "sliderVery" in html
+    assert "progressBar" in html
+
+    # JTBD Switching Simulator
+    title2, html2 = synthesize_html_artifact("Bob Moesta JTBD Customer Switching Forces Simulator")
+    assert "Bob Moesta" in title2
+    assert "<!DOCTYPE html>" in html2
+    assert "Push" in html2
+    assert "Pull" in html2
+    assert "statusBadge" in html2
+    assert "tacticalAdvice" in html2
+
+    # Elena Verna PLG Loop Simulator
+    title3, html3 = synthesize_html_artifact("Elena Verna B2B PLG Loop Simulator")
+    assert "Elena Verna" in title3
+    assert "<!DOCTYPE html>" in html3
+    assert "kBadge" in html3
+    assert "sliderInvites" in html3
+
+@pytest.mark.asyncio
+async def test_process_chat_html_synthesizer_fallback(monkeypatch):
+    """When a 1B model outputs plain text without valid HTML, synthesizer must guarantee an artifact."""
+    from app.services.llm_gateway import llm_gateway
+
+    async def fake_validate(*args, **kwargs):
+        return None
+
+    # Simulates small 1B LLM producing markdown text outline instead of executable HTML
+    async def fake_stream(messages, provider=None, model=None):
+        yield "Here is the interactive prototype plan:\nPage 1: Introduction\n[Product Market Fit Engine Interface]\nSliders: 42% Very Disappointed."
+
+    monkeypatch.setattr(llm_gateway, "validate_provider", fake_validate)
+    monkeypatch.setattr(llm_gateway, "stream_chat", fake_stream)
+
+    prompt = "Build an interactive HTML prototype for Rahul Vohra's Superhuman 40% PMF Engine with sliders"
+    events = []
+    async for event in agent_service.process_chat(prompt, skill="chat", session_id="sess-html-fallback"):
+        events.append(event)
+
+    artifact_events = [e for e in events if e["type"] == "artifact"]
+    assert len(artifact_events) == 1, "Must emit synthesized HTML artifact when model produces text outline"
+    art = artifact_events[0]["data"]
+    assert art["artifact_type"] == "html"
+    assert "Superhuman" in art["title"]
+    assert "<!DOCTYPE html>" in art["content"]
+
+@pytest.mark.asyncio
+async def test_process_chat_pure_grounded_qa_never_emits_artifacts(monkeypatch):
+    """Grounded Q&A chat must never create side artifacts even if model hallucinates artifact delimiters."""
+    from app.services.llm_gateway import llm_gateway
+
+    async def fake_validate(*args, **kwargs):
+        return None
+
+    # Simulates model hallucinating :::artifact inside standard chat comparison
+    async def fake_stream(messages, provider=None, model=None):
+        yield "### Comparison\n:::artifact{type=\"markdown\" title=\"Comparison Table\"}\n| Guest | Focus |\n| --- | --- |\n| Elena | Loops |\n:::\nHope this helps!"
+
+    monkeypatch.setattr(llm_gateway, "validate_provider", fake_validate)
+    monkeypatch.setattr(llm_gateway, "stream_chat", fake_stream)
+
+    prompt = "Compare Elena Verna's perspective on product-led growth (PLG) loops with Casey Winters' framework on retention flywheels."
+    events = []
+    async for event in agent_service.process_chat(prompt, skill="chat", session_id="sess-pure-chat"):
+        events.append(event)
+
+    artifact_events = [e for e in events if e["type"] == "artifact"]
+    assert len(artifact_events) == 0, "Pure Grounded Q&A must never emit artifacts"
+    done = next(e for e in events if e["type"] == "done")
+    assert done["data"]["artifacts_count"] == 0
+    # Artifact tags must be stripped from the final conversational content
+    assert ":::artifact" not in done["data"]["full_content"]
+
+

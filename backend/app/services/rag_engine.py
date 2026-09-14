@@ -35,22 +35,40 @@ class RAGEngine:
         except Exception as e:
             logger.error(f"Failed to load search index: {e}")
 
+    DOMAIN_SPECIFIC = {
+        "retention", "acquisition", "funnel", "funnels", "growth", "product",
+        "market", "customer", "customers", "user", "users", "loop", "loops",
+        "churn", "pricing", "pmf", "metric", "metrics", "ltv", "cac", "sales",
+        "activation", "onboarding", "engagement", "flywheel", "flywheels",
+        "monetization", "compounds", "compounding", "decay"
+    }
+
+    FILLER_WORDS = {
+        "say", "says", "said", "think", "thinks", "thought", "good", "much",
+        "many", "well", "like", "know", "knows", "knew", "really", "very",
+        "just", "also", "even", "more", "most", "some", "any", "lenny",
+        "podcast", "episode", "episodes", "interview", "guest", "guests"
+    }
+
     def _content_tokens(self, query_tokens: List[str]) -> List[str]:
-        """Keep only 'content' tokens: terms with domain or guest specificity (IDF >= 2.8).
-        Conversational filler (say, think, good, much) and generic podcast words (growth,
-        product, lenny, episode) fall below IDF 2.8.
-        Skip digits and short noise tokens."""
+        """Keep only 'content' tokens: domain-specific growth/product terms or words with IDF >= 2.0.
+        Conversational filler (say, think, good, much) and podcast metadata words are excluded.
+        Skip digits and single-character noise tokens."""
         vocab = self.tfidf.vocabulary_
         idf_arr = self.tfidf.idf_
         content = []
         for t in query_tokens:
             if len(t) < 2 or t.isdigit():
                 continue
-            if t in vocab:
-                if idf_arr[vocab[t]] >= 2.8:
+            if t in self.DOMAIN_SPECIFIC:
+                content.append(t)
+            elif t in self.FILLER_WORDS:
+                continue
+            elif t in vocab:
+                if idf_arr[vocab[t]] >= 2.0:
                     content.append(t)
             else:
-                content.append(t)  # out-of-vocabulary tokens are rare by definition
+                content.append(t)
         return content or [t for t in query_tokens if len(t) >= 2 and not t.isdigit()] or query_tokens
 
     def search(self, query: str, top_k: int = 5, guest_filter: str = None) -> Tuple[List[Dict[str, Any]], List[CitationItem], float]:
@@ -66,6 +84,8 @@ class RAGEngine:
             "in", "is", "it", "its", "of", "on", "that", "the", "to", "was", "were",
             "will", "with", "what", "how", "who", "when", "where", "which", "why",
             "me", "my", "we", "you", "i", "can", "do", "does", "should", "about", "tell",
+            # Meta instructional and deliverable words
+            "write", "writing", "executive", "ship", "draft", "article", "post",
             # Generic instruction/artifact words. They are rare in the transcript
             # corpus (hence high IDF) but carry no domain meaning; without this
             # they become 'content tokens' and the coverage gate force-rejects
@@ -156,7 +176,7 @@ class RAGEngine:
                 if len(matched) < 2:
                     max_score = 0.0
             elif len(content_tokens) <= 7:
-                if best_coverage < 0.5:
+                if best_coverage < 0.35 and len(matched) < 2:
                     max_score = 0.0
             else:
                 # Long queries (> 7 content tokens): rich deliverable prompts

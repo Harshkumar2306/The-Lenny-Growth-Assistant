@@ -43,10 +43,42 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   }, [input]);
 
+  // Real-time dynamic auto-detection: as user types or pastes, highlight the matching mode tab
+  useEffect(() => {
+    const text = input.toLowerCase();
+    if (!text.trim()) return;
+
+    const isHtml = /\b(interactive\s+html|html\/js|html\s+prototype|interactive\s+prototype|build\s+an\s+interactive|interactive\s+simulator|interactive\s+calculator|interactive\s+widget|with\s+(?:real-time|interactive)\s+sliders|pmf\s+engine|switching\s+simulator)\b/i.test(text) ||
+      (/\b(interactive|prototype|simulator|calculator|widget|sliders)\b/i.test(text) && /\b(html|engine|pmf|jtbd|loop)\b/i.test(text));
+
+    const isShip30 = /\b(ship\s*30\s+for\s+30|ship\s*30\s+essay|ship\s*30|atomic\s+essay|turn\s+into\s+(?:a\s+)?ship\s*30|write\s+(?:a\s+)?ship\s*30)\b/i.test(text);
+
+    if (isHtml && !isShip30) {
+      setSelectedSkill('artifact');
+    } else if (isShip30) {
+      setSelectedSkill('ship30');
+    }
+  }, [input]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    onSendMessage(input.trim(), selectedSkill);
+    const text = input.trim();
+    if (!text || isLoading) return;
+
+    // Prompt explicit keywords always take priority
+    let effectiveSkill: 'chat' | 'ship30' | 'artifact' = selectedSkill;
+    const lower = text.toLowerCase();
+    const isHtml = /\b(interactive\s+html|html\/js|html\s+prototype|interactive\s+prototype|build\s+an\s+interactive|interactive\s+simulator|interactive\s+calculator|interactive\s+widget|with\s+(?:real-time|interactive)\s+sliders|pmf\s+engine|switching\s+simulator)\b/i.test(lower) ||
+      (/\b(interactive|prototype|simulator|calculator|widget|sliders)\b/i.test(lower) && /\b(html|engine|pmf|jtbd|loop)\b/i.test(lower));
+    const isShip30 = /\b(ship\s*30\s+for\s+30|ship\s*30\s+essay|ship\s*30|atomic\s+essay|turn\s+into\s+(?:a\s+)?ship\s*30|write\s+(?:a\s+)?ship\s*30)\b/i.test(lower);
+
+    if (isHtml && !isShip30) {
+      effectiveSkill = 'artifact';
+    } else if (isShip30) {
+      effectiveSkill = 'ship30';
+    }
+
+    onSendMessage(text, effectiveSkill);
     setInput('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
