@@ -5,12 +5,14 @@ interface ChatInputProps {
   onSendMessage: (message: string, skill: string) => void;
   isLoading: boolean;
   activeProvider: string;
+  activeModel?: string;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
   activeProvider,
+  activeModel,
 }) => {
   const [input, setInput] = useState('');
   const [selectedSkill, setSelectedSkill] = useState<'chat' | 'ship30' | 'artifact'>('chat');
@@ -43,45 +45,57 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <div className="p-2 sm:p-3 md:p-5 bg-stone-950/95 backdrop-blur-md border-t border-stone-800/80 safe-pb flex-shrink-0">
       <div className="max-w-3xl mx-auto space-y-2 sm:space-y-2.5">
-        {/* Mode Selector Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs select-none scrollbar-none touch-manipulation">
+        {/* Mode Selector Chips with Clear Output Target */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 text-xs select-none scrollbar-none touch-manipulation">
           <button
             type="button"
             onClick={() => setSelectedSkill('chat')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0 min-h-[32px] ${
+            title="Generates verified grounded answers directly in the chat feed"
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0 min-h-[32px] ${
               selectedSkill === 'chat'
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-xs'
-                : 'bg-stone-900 text-stone-400 border border-stone-800 hover:text-stone-200'
+                : 'bg-stone-900/90 text-stone-400 border border-stone-800 hover:text-stone-200 hover:border-stone-700'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
             <span>Grounded Q&A</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-stone-800/90 text-stone-400 border border-stone-750">
+              Chat
+            </span>
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedSkill('ship30')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0 min-h-[32px] ${
+            title="Generates an executive ~1,250-word essay that renders in the Artifact Viewer"
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0 min-h-[32px] ${
               selectedSkill === 'ship30'
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-xs'
-                : 'bg-stone-900 text-stone-400 border border-stone-800 hover:text-stone-200'
+                : 'bg-stone-900/90 text-stone-400 border border-stone-800 hover:text-stone-200 hover:border-stone-700'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5 text-amber-400" />
             <span>Ship 30 Essay</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-amber-500/15 text-amber-300 border border-amber-500/30">
+              Artifact
+            </span>
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedSkill('artifact')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0 min-h-[32px] ${
+            title="Generates an interactive HTML/JS widget or prototype that renders in the Artifact Viewer"
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0 min-h-[32px] ${
               selectedSkill === 'artifact'
                 ? 'bg-sky-500/20 text-sky-300 border border-sky-500/50 shadow-xs'
-                : 'bg-stone-900 text-stone-400 border border-stone-800 hover:text-stone-200'
+                : 'bg-stone-900/90 text-stone-400 border border-stone-800 hover:text-stone-200 hover:border-stone-700'
             }`}
           >
             <Layers className="w-3.5 h-3.5 text-sky-400" />
             <span>Interactive HTML</span>
+            <span className="text-[9px] px-1.5 py-0.2 rounded font-mono bg-sky-500/15 text-sky-300 border border-sky-500/30">
+              Artifact
+            </span>
           </button>
         </div>
 
@@ -125,9 +139,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
         <div className="flex items-center justify-between text-[11px] text-stone-500 px-1 select-none">
           <span className="hidden sm:inline">Enter to send • Shift+Enter for new line</span>
-          <span className="font-mono flex items-center gap-1.5 ml-auto sm:ml-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="capitalize">{activeProvider}</span>
+          <span className="font-mono flex items-center gap-1.5 ml-auto sm:ml-0 text-stone-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="capitalize text-stone-300 font-medium">{activeProvider}</span>
+            {activeModel && (
+              <>
+                <span className="text-stone-600">•</span>
+                <span className="text-stone-400">{activeModel}</span>
+              </>
+            )}
           </span>
         </div>
       </div>

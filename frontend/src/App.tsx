@@ -428,6 +428,7 @@ export const App: React.FC = () => {
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}
                 activeProvider={activeProvider}
+                activeModel={activeModel}
               />
             </main>
 
@@ -477,6 +478,7 @@ export const App: React.FC = () => {
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}
                 activeProvider={activeProvider}
+                activeModel={activeModel}
               />
             </main>
           )
