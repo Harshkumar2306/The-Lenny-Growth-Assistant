@@ -12,6 +12,7 @@ interface ChatPaneProps {
   streamingCitations?: Citation[];
   isLoading: boolean;
   onTriggerShip30: (content: string) => void;
+  onTriggerPrototype?: (content: string) => void;
   onOpenArtifact: (artifact: Artifact) => void;
   onSelectPromptChip: (prompt: string, skill?: string) => void;
 }
@@ -25,6 +26,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   streamingCitations,
   isLoading,
   onTriggerShip30,
+  onTriggerPrototype,
   onOpenArtifact,
   onSelectPromptChip,
 }) => {
@@ -60,6 +62,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
               suggestions={idx === messages.length - 1 ? suggestions : undefined}
               isLast={idx === messages.length - 1}
               onTriggerShip30={onTriggerShip30}
+              onTriggerPrototype={onTriggerPrototype}
               onOpenArtifact={onOpenArtifact}
               onSelectPromptChip={onSelectPromptChip}
             />

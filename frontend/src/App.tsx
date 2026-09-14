@@ -290,6 +290,11 @@ export const App: React.FC = () => {
     handleSendMessage(prompt, 'ship30');
   };
 
+  const handleTriggerPrototype = (content: string) => {
+    const prompt = `Build an interactive HTML prototype and calculator widget based on this strategic insight:\n\n${content.slice(0, 450)}`;
+    handleSendMessage(prompt, 'artifact');
+  };
+
   const handleTriggerDeliverable = (prompt: string, skill: string) => {
     if (!isDesktop) {
       setMobileActiveTab('chat');
@@ -420,6 +425,7 @@ export const App: React.FC = () => {
                 streamingCitations={streamingCitations}
                 isLoading={isLoading}
                 onTriggerShip30={handleTriggerShip30}
+                onTriggerPrototype={handleTriggerPrototype}
                 onOpenArtifact={handleOpenArtifact}
                 onSelectPromptChip={(prompt, skill) => handleSendMessage(prompt, skill || 'chat')}
               />
@@ -470,6 +476,7 @@ export const App: React.FC = () => {
                 streamingCitations={streamingCitations}
                 isLoading={isLoading}
                 onTriggerShip30={handleTriggerShip30}
+                onTriggerPrototype={handleTriggerPrototype}
                 onOpenArtifact={handleOpenArtifact}
                 onSelectPromptChip={(prompt, skill) => handleSendMessage(prompt, skill || 'chat')}
               />
