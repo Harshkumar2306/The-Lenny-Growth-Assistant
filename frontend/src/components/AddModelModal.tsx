@@ -13,8 +13,8 @@ type ProviderType = 'groq' | 'openai' | 'anthropic' | 'custom';
 
 const PROVIDER_PRESETS: Record<ProviderType, { defaultModel: string; suggestions: string[]; baseUrl: string }> = {
   groq: {
-    defaultModel: 'llama-3.3-70b-versatile',
-    suggestions: ['llama-3.3-70b-versatile', 'qwen-2.5-32b', 'deepseek-r1-distill-llama-70b', 'llama-3.1-8b-instant'],
+    defaultModel: 'qwen/qwen3.8-27b',
+    suggestions: ['qwen/qwen3.8-27b', 'llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'qwen-2.5-32b', 'llama-3.1-8b-instant'],
     baseUrl: 'https://api.groq.com/openai/v1',
   },
   openai: {
