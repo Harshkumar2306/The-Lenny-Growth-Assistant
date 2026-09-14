@@ -5,6 +5,8 @@ import { ShieldCheck, RotateCw, ExternalLink, Smartphone, Tablet, Monitor, Maxim
 interface SandboxIframeProps {
   htmlContent: string;
   title?: string;
+  isCompact?: boolean;
+  isExpanded?: boolean;
 }
 
 /**
@@ -131,7 +133,12 @@ function buildWrapperDocument(innerDoc: string): string {
 </html>`;
 }
 
-export const SandboxIframe: React.FC<SandboxIframeProps> = ({ htmlContent, title = 'Artifact Preview' }) => {
+export const SandboxIframe: React.FC<SandboxIframeProps> = ({
+  htmlContent,
+  title = 'Artifact Preview',
+  isCompact = false,
+  isExpanded = true,
+}) => {
   const [key, setKey] = useState(0);
   const [deviceFrame, setDeviceFrame] = useState<'fluid' | 'desktop' | 'tablet' | 'mobile'>('fluid');
   const [copiedHtml, setCopiedHtml] = useState(false);
@@ -160,11 +167,14 @@ export const SandboxIframe: React.FC<SandboxIframeProps> = ({ htmlContent, title
   return (
     <div className="flex flex-col h-full w-full bg-stone-950 overflow-hidden select-none">
       {/* Responsive Control Bar */}
-      <div className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-stone-900/90 border-b border-stone-800 text-[11px] text-stone-400 flex items-center justify-between flex-shrink-0 gap-2 overflow-x-auto scrollbar-none">
-        <div className="flex items-center gap-1.5 sm:gap-2 text-emerald-400 font-medium flex-shrink-0">
+      <div className="px-2 sm:px-3.5 py-1.5 bg-stone-900/90 border-b border-stone-800 text-[11px] text-stone-400 flex items-center justify-between flex-shrink-0 gap-1.5 overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1.5 text-emerald-400 font-medium flex-shrink-0">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Sandboxed Execution</span>
-          <span className="sm:hidden">Sandboxed</span>
+          {isExpanded ? (
+            <span>Sandboxed Execution</span>
+          ) : !isCompact ? (
+            <span>Sandboxed</span>
+          ) : null}
         </div>
 
         {/* Viewport Frame Presets (Fluid, Desktop, Tablet, Mobile) */}
@@ -179,7 +189,7 @@ export const SandboxIframe: React.FC<SandboxIframeProps> = ({ htmlContent, title
             }`}
           >
             <Maximize className="w-3 h-3" />
-            <span className="hidden md:inline">Fluid</span>
+            {isExpanded && <span>Fluid</span>}
           </button>
           <button
             onClick={() => setDeviceFrame('desktop')}
@@ -191,7 +201,7 @@ export const SandboxIframe: React.FC<SandboxIframeProps> = ({ htmlContent, title
             }`}
           >
             <Monitor className="w-3 h-3" />
-            <span className="hidden md:inline">Desktop</span>
+            {isExpanded && <span>Desktop</span>}
           </button>
           <button
             onClick={() => setDeviceFrame('tablet')}
@@ -203,7 +213,7 @@ export const SandboxIframe: React.FC<SandboxIframeProps> = ({ htmlContent, title
             }`}
           >
             <Tablet className="w-3 h-3" />
-            <span className="hidden md:inline">Tablet</span>
+            {isExpanded && <span>Tablet</span>}
           </button>
           <button
             onClick={() => setDeviceFrame('mobile')}
@@ -215,7 +225,7 @@ export const SandboxIframe: React.FC<SandboxIframeProps> = ({ htmlContent, title
             }`}
           >
             <Smartphone className="w-3 h-3" />
-            <span className="hidden md:inline">Mobile</span>
+            {isExpanded && <span>Mobile</span>}
           </button>
         </div>
 

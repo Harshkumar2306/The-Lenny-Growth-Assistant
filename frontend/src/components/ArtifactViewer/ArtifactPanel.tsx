@@ -30,8 +30,8 @@ interface ArtifactPanelProps {
   isDesktop?: boolean;
 }
 
-const MIN_PANEL_WIDTH = 380;
-const MAX_PANEL_WIDTH = 680; // Hard ceiling: cannot extend past this extent
+const MIN_PANEL_WIDTH = 360;
+const MAX_PANEL_WIDTH = 720; // Hard ceiling: cannot extend past this extent
 
 interface StarterTemplate {
   title: string;
@@ -83,6 +83,14 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   const [panelWidth, setPanelWidth] = useState<number>(MIN_PANEL_WIDTH);
   const isResizingRef = useRef(false);
 
+  // Dynamic container width classification
+  const currentWidth = !isDesktop || isFullscreen
+    ? (typeof window !== 'undefined' ? window.innerWidth : 800)
+    : panelWidth;
+
+  const isCompact = currentWidth < 460;
+  const isExpanded = currentWidth >= 560;
+
   // Drag-to-resize listener on desktop with strict extent boundary
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -90,8 +98,8 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       const newWidth = window.innerWidth - e.clientX;
       const maxAllowed = Math.min(
         MAX_PANEL_WIDTH,
-        Math.floor(window.innerWidth * 0.5),
-        Math.max(MIN_PANEL_WIDTH, window.innerWidth - 480)
+        Math.floor(window.innerWidth * 0.6),
+        Math.max(MIN_PANEL_WIDTH, window.innerWidth - 440)
       );
       if (newWidth >= MIN_PANEL_WIDTH && newWidth <= maxAllowed) {
         setPanelWidth(newWidth);
@@ -294,13 +302,13 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       )}
 
       {/* Top Header */}
-      <div className="h-12 sm:h-13 border-b border-stone-800 px-3 sm:px-3.5 flex items-center justify-between bg-stone-900/95 backdrop-blur flex-shrink-0 gap-2 sm:gap-3">
+      <div className="h-12 sm:h-13 border-b border-stone-800 px-2.5 sm:px-3.5 flex items-center justify-between bg-stone-900/95 backdrop-blur flex-shrink-0 gap-1.5 sm:gap-2 min-w-0 overflow-hidden">
         {/* Artifact Title & Icon & Mobile Back */}
-        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 overflow-hidden">
           {!isDesktop && (
             <button
               onClick={onClose}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-800 hover:bg-stone-750 text-amber-300 text-xs font-semibold cursor-pointer border border-stone-700/60 shadow-xs flex-shrink-0"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-stone-800 hover:bg-stone-750 text-amber-300 text-xs font-semibold cursor-pointer border border-stone-700/60 shadow-xs flex-shrink-0"
               title="Return to Chat"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -317,28 +325,34 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
               <FileText className="w-3.5 h-3.5" />
             </div>
           )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <h2 className="text-xs md:text-sm font-semibold text-stone-100 truncate" title={artifact.title}>
-                {artifact.title}
-              </h2>
+          <div className="min-w-0 flex-1 flex items-center gap-1.5 overflow-hidden">
+            <h2
+              className="text-xs sm:text-sm font-semibold text-stone-100 truncate flex-1 min-w-0"
+              title={artifact.title}
+            >
+              {artifact.title}
+            </h2>
+            {/* Format badge adapts: hidden in compact form so title gets maximum breathing room */}
+            {!isCompact && (
               <span
-                className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.2 rounded font-mono hidden sm:inline flex-shrink-0 ${
+                className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded font-mono flex-shrink-0 whitespace-nowrap ${
                   isHtml
                     ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30'
                     : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
                 }`}
               >
-                {isHtml ? 'HTML Prototype' : 'Ship 30 Deliverable'}
+                {isExpanded
+                  ? isHtml ? 'HTML Prototype' : 'Ship 30 Deliverable'
+                  : isHtml ? 'HTML' : 'Ship 30'}
               </span>
-            </div>
+            )}
           </div>
         </div>
 
         {/* Header Controls */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Multi-Artifact Navigation */}
-          {artifactsList.length > 1 && (
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+          {/* Multi-Artifact Navigation - only shown in header when wide room is available */}
+          {artifactsList.length > 1 && isExpanded && (
             <div className="flex items-center gap-0.5 bg-stone-950 px-1.5 py-0.5 rounded-lg border border-stone-800 text-[10px]">
               <button
                 disabled={currentIdx <= 0}
@@ -388,7 +402,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
             </button>
           </div>
 
-          <div className="h-4 w-px bg-stone-800" />
+          <div className="h-4 w-px bg-stone-800 hidden sm:block" />
 
           {/* Action Tools */}
           <div className="flex items-center gap-0.5">
@@ -431,10 +445,10 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
 
       {/* Multi-Artifact Tab Switcher Strip (When 2+ deliverables generated) */}
       {artifactsList.length > 1 && (
-        <div className="bg-stone-950/90 border-b border-stone-800/80 px-2.5 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-shrink-0">
+        <div className="bg-stone-950/90 border-b border-stone-800/80 px-2 sm:px-2.5 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-shrink-0">
           <div className="text-[10px] uppercase font-bold text-stone-500 tracking-wider pl-1 pr-1 flex items-center gap-1 flex-shrink-0">
             <Layers className="w-3 h-3 text-stone-400" />
-            <span>Deliverables ({artifactsList.length}):</span>
+            {!isCompact && <span>Deliverables ({artifactsList.length}):</span>}
           </div>
           {artifactsList.map((art, idx) => {
             const isCurrent = art.id === artifact.id;
@@ -450,11 +464,11 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
                 }`}
               >
                 {isHtmlArt ? (
-                  <Globe className={`w-3 h-3 ${isCurrent ? 'text-sky-400' : 'text-sky-500/70'}`} />
+                  <Globe className={`w-3 h-3 flex-shrink-0 ${isCurrent ? 'text-sky-400' : 'text-sky-500/70'}`} />
                 ) : (
-                  <FileText className={`w-3 h-3 ${isCurrent ? 'text-amber-400' : 'text-amber-500/70'}`} />
+                  <FileText className={`w-3 h-3 flex-shrink-0 ${isCurrent ? 'text-amber-400' : 'text-amber-500/70'}`} />
                 )}
-                <span className="max-w-[130px] truncate">{art.title}</span>
+                <span className={`${isCompact ? 'max-w-[90px]' : 'max-w-[140px]'} truncate`}>{art.title}</span>
                 <span
                   className={`text-[9px] px-1 py-0.2 rounded font-mono ${
                     isHtmlArt ? 'bg-sky-500/10 text-sky-400' : 'bg-amber-500/10 text-amber-400'
@@ -472,9 +486,18 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       <div className="flex-1 overflow-hidden relative">
         {activeTab === 'preview' ? (
           isHtml ? (
-            <SandboxIframe htmlContent={artifact.content} title={artifact.title} />
+            <SandboxIframe
+              htmlContent={artifact.content}
+              title={artifact.title}
+              isCompact={isCompact}
+              isExpanded={isExpanded}
+            />
           ) : (
-            <MarkdownView content={artifact.content} />
+            <MarkdownView
+              content={artifact.content}
+              isCompact={isCompact}
+              isExpanded={isExpanded}
+            />
           )
         ) : (
           <div className="h-full flex flex-col bg-stone-950 font-mono text-xs">
