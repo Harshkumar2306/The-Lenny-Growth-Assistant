@@ -450,22 +450,31 @@ class AgentService:
             title = attrs.get("title", "Growth Artifact").strip()
 
             if art_type == "html":
-                # Strip stray leading characters before first valid HTML tag (e.g. ')}', '```html')
-                first_tag = re.search(r'<!DOCTYPE|<html|<head|<body|<div|<main|<section|<header', content, re.IGNORECASE)
-                if first_tag and first_tag.start() > 0:
-                    content = content[first_tag.start():].strip()
-
-                # If </html> exists, truncate any trailing commentary or markdown that leaked into the block
-                html_end = content.rfind('</html>')
-                if html_end != -1:
-                    content = content[:html_end + 7].strip()
+                # Verify that content actually contains HTML tags
+                has_html_tags = bool(re.search(r'<!DOCTYPE|<html|<head|<body|<div|<main|<section|<table|<form|<p\b|<h[1-6]\b', content, re.IGNORECASE))
+                if not has_html_tags:
+                    art_type = "markdown"
                 else:
-                    # If </html> was missing, strip any trailing markdown explanation headers
-                    md_leak = re.search(r'\n```|\n###\s+Explanation|\n###\s+How\s+to|\n###\s+Example', content)
-                    if md_leak and md_leak.start() > 50:
-                        content = content[:md_leak.start()].strip()
-                        if not content.endswith('</html>'):
-                            content += '\n</body></html>'
+                    # Strip stray leading characters before first valid HTML tag (e.g. ')}', '```html')
+                    first_tag = re.search(r'<!DOCTYPE|<html|<head|<body|<div|<main|<section|<header', content, re.IGNORECASE)
+                    if first_tag and first_tag.start() > 0:
+                        content = content[first_tag.start():].strip()
+
+                    # If </html> exists, truncate any trailing commentary or markdown that leaked into the block
+                    html_end = content.rfind('</html>')
+                    if html_end != -1:
+                        content = content[:html_end + 7].strip()
+                    else:
+                        # If </html> was missing, strip any trailing markdown explanation headers
+                        md_leak = re.search(r'\n```|\n###\s+Explanation|\n###\s+How\s+to|\n###\s+Example', content)
+                        if md_leak and md_leak.start() > 50:
+                            content = content[:md_leak.start()].strip()
+                            if not content.endswith('</html>'):
+                                content += '\n</body></html>'
+
+            # Filter out model hallucinations leaking system prompt instructions
+            if "Presentation & Formatting Standards" in content or "Core Operating Rules" in content or "Grounding & Evidence" in content:
+                continue
 
             # NOTE: model-supplied ids are intentionally IGNORED. A 1B model
             # frequently repeats the same id (e.g. the constant "essay" in the
