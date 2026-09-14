@@ -357,3 +357,26 @@ async def test_llm_gateway_lifespan_teardown():
     await llm_gateway.aclose()
     assert True
 
+
+def test_html_artifact_synthesizer_routing():
+    """Synthesizer must route Elena Verna PLG, Bob Moesta JTBD, and Rahul Vohra PMF without collision."""
+    from app.services.html_artifact_synthesizer import synthesize_html_artifact
+
+    # 1. Elena Verna PLG simulator with potential cross-terms ("switch", "forces")
+    elena_prompt = "Create an interactive HTML/CSS Product-Led Growth (PLG) Loop simulator based on Elena Verna's B2B growth models. Include range sliders for conversion, retention, and viral K-factor."
+    t1, html1 = synthesize_html_artifact(elena_prompt, "Elena discusses switching forces and retention.")
+    assert "Elena Verna" in t1
+    assert "PLG" in t1
+
+    # 2. Bob Moesta JTBD simulator
+    moesta_prompt = "Build an interactive Bob Moesta Jobs-to-be-Done switching simulator with the 4 forces."
+    t2, html2 = synthesize_html_artifact(moesta_prompt, "Push of current situation and pull of new solution.")
+    assert "Bob Moesta" in t2
+    assert "JTBD" in t2
+
+    # 3. Superhuman PMF Engine
+    vohra_prompt = "Generate an interactive Superhuman PMF engine with the 40% rule from Rahul Vohra."
+    t3, html3 = synthesize_html_artifact(vohra_prompt, "How disappointed would you be without the product?")
+    assert "Superhuman" in t3
+    assert "PMF" in t3
+

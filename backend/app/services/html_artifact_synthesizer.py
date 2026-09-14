@@ -480,14 +480,17 @@ def synthesize_html_artifact(message: str, content: str = "", chunks: List[Dict[
     """Inspect query and content to return the exact interactive HTML application."""
     text_corpus = f"{message} {content}".lower()
 
-    if any(k in text_corpus for k in ["pmf", "vohra", "superhuman", "ellis", "disappointed", "product market fit"]):
-        return ("Interactive Prototype: Superhuman 40% PMF Engine", generate_pmf_engine_html())
+    # 1. Elena Verna / B2B PLG Loop Simulator
+    if any(k in text_corpus for k in ["elena verna", "verna", "plg", "product-led", "product led", "k-factor", "viral loop", "plg loop"]):
+        return ("Interactive Prototype: Elena Verna B2B PLG Loop Simulator", generate_plg_loop_simulator_html())
 
-    if any(k in text_corpus for k in ["jtbd", "moesta", "switch", "push", "pull", "anxiety", "habit", "forces"]):
+    # 2. Bob Moesta / JTBD Switching Simulator
+    if any(k in text_corpus for k in ["jtbd", "moesta", "jobs to be done", "jobs-to-be-done", "switching simulator", "forces of switching", "4 forces", "four forces"]):
         return ("Interactive Prototype: Bob Moesta JTBD Switching Simulator", generate_jtbd_switching_simulator_html())
 
-    if any(k in text_corpus for k in ["plg", "verna", "loop", "viral", "flywheel", "expansion", "retention", "k-factor"]):
-        return ("Interactive Prototype: Elena Verna B2B PLG Loop Simulator", generate_plg_loop_simulator_html())
+    # 3. Rahul Vohra / Superhuman PMF Engine
+    if any(k in text_corpus for k in ["pmf", "vohra", "superhuman", "ellis", "sean ellis", "40% rule", "how disappointed", "product market fit"]):
+        return ("Interactive Prototype: Superhuman 40% PMF Engine", generate_pmf_engine_html())
 
     # Fallback to Superhuman PMF Engine as standard interactive prototype
     return ("Interactive Prototype: Growth Metric Simulator", generate_pmf_engine_html("Interactive Growth Engine"))
