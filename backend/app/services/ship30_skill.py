@@ -8,6 +8,7 @@ Encodes Nicolas Cole & Dickie Bush's exact writing frameworks:
 5. The High-Leverage Takeaway Playbook
 Target length: ~1,250 words
 """
+import re
 from typing import List, Dict, Any
 
 SHIP30_SYSTEM_PROMPT = """You are a master digital writer and growth essayist trained in the Ship 30 for 30 methodology created by Nicolas Cole and Dickie Bush.
@@ -54,6 +55,9 @@ def build_ship30_prompt(topic: str, context_chunks: List[Dict[str, Any]]) -> str
         context_str += f"Timestamp: {c.get('timestamp')}\n"
         context_str += f"{c.get('text')}\n"
 
+    clean_title = re.sub(r'^\s*(?:write|draft|turn\s+into)\s+(?:an?\s+)?(?:executive\s+)?(?:ship\s*30(?:\s+for\s+30)?\s+essay)?\s*(?:on|about)?\s*', '', topic, flags=re.IGNORECASE).strip()
+    title_display = clean_title[:45].strip() if clean_title else topic[:45].strip()
+
     prompt = f"""Write a comprehensive ~1,250-word Ship 30 for 30-style essay on the topic:
 "{topic}"
 
@@ -62,9 +66,9 @@ Use the following verified excerpts from Lenny's Podcast transcripts to ground a
 
 Ensure the essay follows all Ship 30 for 30 principles: strong hook, 1-3-1 rhythm, skimmable bolding, 3-5 grounded pillars citing the guests, and an actionable takeaway.
 
-Encapsulate the complete essay inside a native artifact block:
-:::artifact{{id="essay" type="markdown" title="Magnetic Headline"}}
-# Magnetic Headline
+Encapsulate the complete ~1,250-word essay inside a native artifact block:
+:::artifact{{id="essay" type="markdown" title="{title_display}"}}
+# {clean_title or topic}
 ...complete ~1,250-word essay with 1-3-1 cadence and grounded guest citations...
 :::
 """

@@ -329,4 +329,36 @@ async def test_process_chat_pure_grounded_qa_never_emits_artifacts(monkeypatch):
     # Artifact tags must be stripped from the final conversational content
     assert ":::artifact" not in done["data"]["full_content"]
 
+@pytest.mark.asyncio
+async def test_process_chat_ship30_bangaly_kaba_synthesis(monkeypatch):
+    """When model generates a 2-line stub titled 'Magnetic Headline', synthesizer must deliver full essay."""
+    from app.services.llm_gateway import llm_gateway
+
+    async def fake_validate(*args, **kwargs):
+        return None
+
+    # Simulates the exact 1B failure from user's screenshot
+    async def fake_stream(messages, provider=None, model=None):
+        yield ':::artifact{id="essay" type="markdown" title="Magnetic Headline"}\n# Magnetic Headline\nUnlocking Exponential Growth: How Instagram and Instacart Adjacent User Theory...\n:::\nShort commentary...'
+
+    monkeypatch.setattr(llm_gateway, "validate_provider", fake_validate)
+    monkeypatch.setattr(llm_gateway, "stream_chat", fake_stream)
+
+    prompt = "Write an executive Ship 30 essay on Bangaly Kaba's Adjacent User Theory: How Instagram and Instacart unlocked exponential growth by systematically identifying and debugging where the next cohort drops off."
+    events = []
+    async for event in agent_service.process_chat(prompt, skill="chat", session_id="sess-bangaly-kaba"):
+        events.append(event)
+
+    artifact_events = [e for e in events if e["type"] == "artifact"]
+    assert len(artifact_events) == 1, "Must emit complete Ship 30 essay artifact"
+    art = artifact_events[0]["data"]
+    assert art["artifact_type"] == "markdown"
+    assert art["title"] != "Magnetic Headline", "Must sanitize 'Magnetic Headline' title placeholder"
+    assert "Adjacent User Theory" in art["title"]
+    assert len(art["content"]) > 3000, "Must contain full publication-ready ~1,250-word essay"
+    assert "Bangaly Kaba" in art["content"]
+    assert "Instagram" in art["content"]
+    assert "Instacart" in art["content"]
+    assert "# Magnetic Headline" not in art["content"]
+
 

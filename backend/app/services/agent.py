@@ -7,6 +7,7 @@ from app.core.logging import logger
 from app.services.rag_engine import rag_engine
 from app.services.llm_gateway import llm_gateway, LLMProviderError
 from app.services.ship30_skill import SHIP30_SYSTEM_PROMPT, build_ship30_prompt
+from app.services.ship30_synthesizer import synthesize_ship30_essay
 from app.services.html_artifact_synthesizer import synthesize_html_artifact
 from app.schemas.chat_schemas import CitationItem, ArtifactItem
 
@@ -338,18 +339,47 @@ class AgentService:
             ).strip()
             full_content = re.sub(r'^\s*:::\s*$', '', full_content, flags=re.MULTILINE).strip()
 
-        # Resilient fallback: auto-package artifact if requested but model forgot delimiter tags
-        if is_ship30 and not artifacts and len(full_content) > 120:
-            title_match = re.search(r'^#\s+(.+)$', full_content, re.MULTILINE)
-            essay_title = title_match.group(1).strip() if title_match else f"Ship 30 Essay: {message[:40]}"
-            artifacts.append(ArtifactItem(
-                id=str(uuid.uuid4()),
-                session_id=session_id,
-                artifact_type="markdown",
-                title=essay_title,
-                content=full_content,
-                version=1
-            ))
+        # Ship 30 Deliverable Processing: Ensure publication-ready depth and accurate title
+        if is_ship30:
+            ship30_art = next((a for a in artifacts if a.artifact_type == "markdown"), None)
+
+            # Check if parsed artifact has sufficient publication depth (>= 2200 chars)
+            # and is not titled with a placeholder like 'Magnetic Headline'
+            is_valid_depth = (
+                ship30_art is not None and
+                len(ship30_art.content) >= 2200 and
+                ship30_art.title.lower() not in ["magnetic headline", "essay", "untitled", "growth artifact", "artifact"]
+            )
+
+            if not is_valid_depth:
+                synth_title, synth_content = synthesize_ship30_essay(message, full_content, chunks)
+                if ship30_art:
+                    ship30_art.title = synth_title
+                    ship30_art.content = synth_content
+                else:
+                    ship30_art = ArtifactItem(
+                        id=str(uuid.uuid4()),
+                        session_id=session_id,
+                        artifact_type="markdown",
+                        title=synth_title,
+                        content=synth_content,
+                        version=1
+                    )
+            else:
+                # Sanitize placeholder title if needed
+                if ship30_art.title.lower() in ["magnetic headline", "essay", "untitled"]:
+                    title_match = re.search(r'^#\s+(.+)$', ship30_art.content, re.MULTILINE)
+                    if title_match and title_match.group(1).lower() != "magnetic headline":
+                        ship30_art.title = title_match.group(1).strip()
+                    else:
+                        clean_topic = re.sub(r'^\s*(?:write|draft|turn\s+into)\s+(?:an?\s+)?(?:executive\s+)?(?:ship\s*30(?:\s+for\s+30)?\s+essay)?\s*(?:on|about)?\s*', '', message, flags=re.IGNORECASE).strip()
+                        ship30_art.title = f"Ship 30: {clean_topic[:45]}"
+
+                # Strip # Magnetic Headline from content if present
+                ship30_art.content = re.sub(r'^#\s+Magnetic Headline\s*\n+', '', ship30_art.content, flags=re.IGNORECASE).strip()
+
+            artifacts = [ship30_art]
+
         elif is_html_artifact:
             # Check if an HTML artifact was properly captured and is self-contained
             valid_html_art = None
@@ -408,7 +438,7 @@ class AgentService:
                         content=synth_html,
                         version=1
                     )
-                    artifacts.append(html_art)
+                    artifacts = [html_art]
                 else:
                     art_id = str(uuid.uuid4())
                     html_art = ArtifactItem(
@@ -419,7 +449,9 @@ class AgentService:
                         content=html_code,
                         version=1
                     )
-                    artifacts.append(html_art)
+                    artifacts = [html_art]
+            else:
+                artifacts = [valid_html_art]
 
         for art in artifacts:
             yield {"type": "artifact", "data": art.model_dump(mode="json")}
