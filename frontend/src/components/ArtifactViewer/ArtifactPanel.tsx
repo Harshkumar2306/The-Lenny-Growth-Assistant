@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   X,
   Copy,
@@ -86,6 +86,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
     }
     return 500;
   });
+  const [isResizing, setIsResizing] = useState(false);
   const isResizingRef = useRef(false);
 
   // Dynamic container width classification
@@ -96,47 +97,133 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   const isCompact = currentWidth < 460;
   const isExpanded = currentWidth >= 560;
 
-  // Drag-to-resize listener on desktop with strict extent boundary
+  const stopResizing = useCallback(() => {
+    isResizingRef.current = false;
+    setIsResizing(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  const updateWidth = useCallback((clientX: number) => {
+    const newWidth = window.innerWidth - clientX;
+    const maxAllowed = Math.min(
+      MAX_PANEL_WIDTH,
+      Math.floor(window.innerWidth * 0.65),
+      Math.max(MIN_PANEL_WIDTH, window.innerWidth - 420)
+    );
+    if (newWidth >= MIN_PANEL_WIDTH && newWidth <= maxAllowed) {
+      setPanelWidth(newWidth);
+    } else if (newWidth > maxAllowed) {
+      setPanelWidth(maxAllowed);
+    } else if (newWidth < MIN_PANEL_WIDTH) {
+      setPanelWidth(MIN_PANEL_WIDTH);
+    }
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDesktop || e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingRef.current = true;
+    setIsResizing(true);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Graceful fallback if setPointerCapture unsupported
+    }
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isResizingRef.current) return;
+    e.preventDefault();
+    updateWidth(e.clientX);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isResizingRef.current) {
+      try {
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // Graceful fallback
+      }
+      stopResizing();
+    }
+  };
+
+  // Drag-to-resize listener on desktop with multi-layer release guarantees
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const onMouseMove = (e: MouseEvent) => {
       if (!isResizingRef.current || !isDesktop) return;
-      const newWidth = window.innerWidth - e.clientX;
-      const maxAllowed = Math.min(
-        MAX_PANEL_WIDTH,
-        Math.floor(window.innerWidth * 0.6),
-        Math.max(MIN_PANEL_WIDTH, window.innerWidth - 440)
-      );
-      if (newWidth >= MIN_PANEL_WIDTH && newWidth <= maxAllowed) {
-        setPanelWidth(newWidth);
-      } else if (newWidth > maxAllowed) {
-        setPanelWidth(maxAllowed);
-      } else if (newWidth < MIN_PANEL_WIDTH) {
-        setPanelWidth(MIN_PANEL_WIDTH);
+      // If mouse button was released while over an iframe or outside window
+      if (e.buttons === 0) {
+        stopResizing();
+        return;
+      }
+      updateWidth(e.clientX);
+    };
+
+    const onMouseUp = () => {
+      if (isResizingRef.current) {
+        stopResizing();
       }
     };
 
-    const handleMouseUp = () => {
-      isResizingRef.current = false;
-      document.body.style.cursor = 'default';
-      document.body.style.userSelect = 'auto';
+    const onPointerUp = () => {
+      if (isResizingRef.current) {
+        stopResizing();
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isResizingRef.current) {
+        stopResizing();
+      }
     };
 
     if (isDesktop) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', stopResizing);
+      window.addEventListener('blur', stopResizing);
+      window.addEventListener('keydown', onKeyDown);
     }
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', stopResizing);
+      window.removeEventListener('blur', stopResizing);
+      window.removeEventListener('keydown', onKeyDown);
     };
-  }, [isDesktop]);
+  }, [isDesktop, stopResizing, updateWidth]);
 
-  const handleStartResize = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!isDesktop) return;
-    isResizingRef.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+  const renderResizeHandle = () => {
+    if (!isDesktop || isFullscreen) return null;
+    return (
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={stopResizing}
+        onDoubleClick={() => setPanelWidth(500)}
+        title={`Drag to resize width (${MIN_PANEL_WIDTH}px – ${MAX_PANEL_WIDTH}px) • Double-click to reset`}
+        className="absolute left-0 top-0 bottom-0 w-3 -ml-1.5 cursor-col-resize z-30 group flex items-center justify-center select-none touch-none"
+      >
+        {/* Visual indicator bar with hover and active glow */}
+        <div
+          className={`w-1 h-full transition-colors duration-150 ${
+            isResizing
+              ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]'
+              : 'bg-stone-800/80 group-hover:bg-amber-500/70'
+          }`}
+        />
+      </div>
+    );
   };
 
   const handleTrigger = (template: StarterTemplate) => {
@@ -149,25 +236,31 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
 
   if (!artifact) {
     return (
-      <aside
-        style={{
-          width: !isDesktop || isFullscreen ? '100%' : `${panelWidth}px`,
-          minWidth: isDesktop && !isFullscreen ? `${MIN_PANEL_WIDTH}px` : undefined,
-          maxWidth: isDesktop && !isFullscreen ? `${MAX_PANEL_WIDTH}px` : undefined,
-        }}
-        className={`border-l border-stone-800 bg-stone-900 flex flex-col h-full shadow-2xl transition-all duration-75 relative z-10 flex-shrink-0 ${
-          !isDesktop || isFullscreen ? 'w-full' : ''
-        }`}
-      >
-        {/* Resizable Left Edge Drag Handle (Desktop only) */}
-        {isDesktop && !isFullscreen && (
+      <>
+        {/* Global Drag Shield Overlay during active resize */}
+        {isResizing && (
           <div
-            onMouseDown={handleStartResize}
-            onDoubleClick={() => setPanelWidth(MIN_PANEL_WIDTH)}
-            title={`Drag to resize (${MIN_PANEL_WIDTH}px – max ${MAX_PANEL_WIDTH}px) • Double-click to reset`}
-            className="absolute left-0 top-0 bottom-0 w-1 -ml-0.5 cursor-col-resize hover:w-1.5 hover:bg-amber-500/60 transition-all z-20"
+            className="fixed inset-0 z-[9999] cursor-col-resize select-none bg-transparent touch-none"
+            onPointerMove={(e) => updateWidth(e.clientX)}
+            onPointerUp={stopResizing}
+            onPointerCancel={stopResizing}
+            onMouseUp={stopResizing}
           />
         )}
+
+        <aside
+          style={{
+            width: !isDesktop || isFullscreen ? '100%' : `${panelWidth}px`,
+            minWidth: isDesktop && !isFullscreen ? `${MIN_PANEL_WIDTH}px` : undefined,
+            maxWidth: isDesktop && !isFullscreen ? `${MAX_PANEL_WIDTH}px` : undefined,
+          }}
+          className={`border-l border-stone-800 bg-stone-900 flex flex-col h-full shadow-2xl ${
+            isResizing ? 'transition-none select-none' : 'transition-all duration-75'
+          } relative z-10 flex-shrink-0 ${
+            !isDesktop || isFullscreen ? 'w-full' : ''
+          }`}
+        >
+          {renderResizeHandle()}
 
         {/* Top Header */}
         <div className="h-12 sm:h-13 border-b border-stone-800 px-3 sm:px-3.5 flex items-center justify-between bg-stone-900/95 backdrop-blur flex-shrink-0 gap-2">
@@ -260,6 +353,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
           </div>
         </div>
       </aside>
+    </>
     );
   }
 
@@ -286,25 +380,31 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   const currentIdx = artifactsList.findIndex((a) => a.id === artifact.id);
 
   return (
-    <aside
-      style={{
-        width: !isDesktop || isFullscreen ? '100%' : `${panelWidth}px`,
-        minWidth: isDesktop && !isFullscreen ? `${MIN_PANEL_WIDTH}px` : undefined,
-        maxWidth: isDesktop && !isFullscreen ? `${MAX_PANEL_WIDTH}px` : undefined,
-      }}
-      className={`border-l border-stone-800 bg-stone-900 flex flex-col h-full shadow-2xl transition-all duration-75 relative z-10 flex-shrink-0 ${
-        !isDesktop || isFullscreen ? 'w-full' : ''
-      }`}
-    >
-      {/* Resizable Left Edge Drag Handle (Desktop only) */}
-      {isDesktop && !isFullscreen && (
+    <>
+      {/* Global Drag Shield Overlay during active resize */}
+      {isResizing && (
         <div
-          onMouseDown={handleStartResize}
-          onDoubleClick={() => setPanelWidth(MIN_PANEL_WIDTH)}
-          title={`Drag to resize (${MIN_PANEL_WIDTH}px – max ${MAX_PANEL_WIDTH}px) • Double-click to reset`}
-          className="absolute left-0 top-0 bottom-0 w-1 -ml-0.5 cursor-col-resize hover:w-1.5 hover:bg-amber-500/60 transition-all z-20"
+          className="fixed inset-0 z-[9999] cursor-col-resize select-none bg-transparent touch-none"
+          onPointerMove={(e) => updateWidth(e.clientX)}
+          onPointerUp={stopResizing}
+          onPointerCancel={stopResizing}
+          onMouseUp={stopResizing}
         />
       )}
+
+      <aside
+        style={{
+          width: !isDesktop || isFullscreen ? '100%' : `${panelWidth}px`,
+          minWidth: isDesktop && !isFullscreen ? `${MIN_PANEL_WIDTH}px` : undefined,
+          maxWidth: isDesktop && !isFullscreen ? `${MAX_PANEL_WIDTH}px` : undefined,
+        }}
+        className={`border-l border-stone-800 bg-stone-900 flex flex-col h-full shadow-2xl ${
+          isResizing ? 'transition-none select-none' : 'transition-all duration-75'
+        } relative z-10 flex-shrink-0 ${
+          !isDesktop || isFullscreen ? 'w-full' : ''
+        }`}
+      >
+        {renderResizeHandle()}
 
       {/* Top Header */}
       <div className="h-12 sm:h-13 border-b border-stone-800 px-2.5 sm:px-3.5 flex items-center justify-between bg-stone-900/95 backdrop-blur flex-shrink-0 gap-1.5 sm:gap-2 min-w-0 overflow-hidden">
@@ -488,7 +588,7 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className={`flex-1 overflow-hidden relative ${isResizing ? 'pointer-events-none' : ''}`}>
         {activeTab === 'preview' ? (
           isHtml ? (
             <SandboxIframe
@@ -537,5 +637,6 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
         )}
       </div>
     </aside>
+  </>
   );
 };
