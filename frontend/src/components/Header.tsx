@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   const activeModelObj = models.find(m => m.provider === activeProvider && (!m.model_name || m.model_name === activeModel));
 
   return (
-    <header className="relative z-40 h-14 md:h-16 border-b border-stone-800/80 bg-stone-900/90 backdrop-blur-md px-2.5 sm:px-4 md:px-6 flex items-center justify-between select-none flex-shrink-0 w-full max-w-full overflow-hidden">
+    <header className="relative z-40 h-14 md:h-16 border-b border-stone-800/80 bg-stone-900/90 backdrop-blur-md px-2.5 sm:px-4 md:px-6 flex items-center justify-between select-none flex-shrink-0 w-full">
       {/* Brand & Identity */}
       <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 min-w-0 pr-2">
         {onToggleMobileSidebar && (
