@@ -52,7 +52,66 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     }
   );
   // Clean any leftover orphan ::: tags
+  // Clean any leftover orphan ::: tags
   cleanContent = cleanContent.replace(/^\s*:::\s*$/gm, '').trim();
+
+  // Enhance formatting for cleaner visual presentation (auto-bullet key terms & title headings)
+  const enhanceFormatting = (raw: string): string => {
+    if (!raw) return '';
+    const lines = raw.split('\n');
+    const result: string[] = [];
+    let inCodeBlock = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const stripped = line.trim();
+
+      if (stripped.startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        result.push(line);
+        continue;
+      }
+
+      if (inCodeBlock) {
+        result.push(line);
+        continue;
+      }
+
+      // Convert standalone unheaded section titles into styled markdown headings
+      if (
+        stripped &&
+        !stripped.startsWith('#') &&
+        !stripped.startsWith('-') &&
+        !stripped.startsWith('*') &&
+        !stripped.startsWith('>') &&
+        !stripped.startsWith('|') &&
+        !stripped.endsWith('.') &&
+        !stripped.endsWith(':') &&
+        !stripped.endsWith(';') &&
+        !stripped.endsWith(',') &&
+        stripped.length > 3 &&
+        stripped.length < 55 &&
+        /^[A-Z][A-Za-z0-9\s/&,–—'-]+$/.test(stripped) &&
+        !/^(let|const|var|if|return|for|while|export|import|Feature|Competitor)\b/i.test(stripped)
+      ) {
+        result.push(`\n### ${stripped}\n`);
+        continue;
+      }
+
+      // Convert unbulleted "Key Topic: Details" into clean bullet list items
+      const kvMatch = stripped.match(/^([A-Z][A-Za-z0-9\s/&'-]{2,40}):\s+(.+)$/);
+      if (kvMatch && !stripped.startsWith('-') && !stripped.startsWith('*') && !stripped.startsWith('>') && !stripped.startsWith('|')) {
+        result.push(`- **${kvMatch[1]}**: ${kvMatch[2]}`);
+        continue;
+      }
+
+      result.push(line);
+    }
+
+    return result.join('\n');
+  };
+
+  const formattedContent = isUser ? cleanContent : enhanceFormatting(cleanContent);
 
   if (isUser) {
     return (
@@ -122,10 +181,70 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             </button>
           </div>
 
-          {/* Formatted Markdown */}
-          <div className="text-xs md:text-sm text-stone-200 leading-relaxed prose prose-invert prose-stone max-w-none prose-p:my-2 prose-headings:text-amber-300 prose-strong:text-amber-100 prose-strong:font-bold prose-code:text-amber-300 prose-code:bg-stone-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {cleanContent}
+          {/* Formatted Markdown with Custom Styled Components */}
+          <div className="text-xs md:text-sm text-stone-200 leading-relaxed prose prose-invert prose-stone max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ node, ...props }) => (
+                  <h1 className="text-base sm:text-lg font-bold text-amber-300 mt-4 mb-2 pb-1 border-b border-stone-800" {...props} />
+                ),
+                h2: ({ node, ...props }) => (
+                  <h2 className="text-sm sm:text-base font-bold text-amber-300 mt-4 mb-2" {...props} />
+                ),
+                h3: ({ node, ...props }) => (
+                  <h3 className="text-xs sm:text-sm font-bold text-amber-200 mt-3.5 mb-1.5 flex items-center gap-1.5" {...props} />
+                ),
+                p: ({ node, ...props }) => (
+                  <p className="text-xs sm:text-sm leading-relaxed text-stone-200 mb-3" {...props} />
+                ),
+                ul: ({ node, ...props }) => (
+                  <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm text-stone-200 mb-3.5 marker:text-amber-400" {...props} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol className="list-decimal pl-5 space-y-1.5 text-xs sm:text-sm text-stone-200 mb-3.5 marker:text-amber-400" {...props} />
+                ),
+                li: ({ node, ...props }) => (
+                  <li className="text-stone-200 leading-relaxed pl-0.5" {...props} />
+                ),
+                blockquote: ({ node, ...props }) => (
+                  <blockquote className="border-l-2 border-amber-500/70 bg-stone-900/60 px-3.5 py-2.5 my-3 text-xs sm:text-sm text-stone-300 italic rounded-r-xl shadow-xs" {...props} />
+                ),
+                table: ({ node, ...props }) => (
+                  <div className="overflow-x-auto my-3.5 rounded-xl border border-stone-800 bg-stone-900/50 shadow-inner">
+                    <table className="w-full text-left text-xs text-stone-200 border-collapse" {...props} />
+                  </div>
+                ),
+                thead: ({ node, ...props }) => (
+                  <thead className="bg-stone-900/90 text-amber-300 font-semibold border-b border-stone-800" {...props} />
+                ),
+                th: ({ node, ...props }) => (
+                  <th className="px-3 py-2.5 font-semibold text-amber-300 text-xs border-r border-stone-800/60 last:border-r-0 tracking-wide" {...props} />
+                ),
+                td: ({ node, ...props }) => (
+                  <td className="px-3 py-2 border-b border-stone-800/60 border-r border-stone-800/40 last:border-r-0 text-stone-300 text-xs" {...props} />
+                ),
+                code: ({ node, className, children, ...props }) => {
+                  const isBlock = Boolean(className);
+                  return isBlock ? (
+                    <pre className="p-3 rounded-xl bg-stone-900 border border-stone-800 text-xs font-mono overflow-x-auto text-stone-200 my-2.5 shadow-inner">
+                      <code {...props}>{children}</code>
+                    </pre>
+                  ) : (
+                    <code className="px-1.5 py-0.5 rounded bg-stone-900 border border-stone-800 text-[11px] font-mono text-amber-300" {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+                strong: ({ node, ...props }) => (
+                  <strong className="font-bold text-amber-100" {...props} />
+                ),
+                hr: ({ node, ...props }) => (
+                  <hr className="my-4 border-stone-800/80" {...props} />
+                ),
+              }}
+            >
+              {formattedContent}
             </ReactMarkdown>
           </div>
 

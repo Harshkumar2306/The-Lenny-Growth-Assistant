@@ -33,9 +33,13 @@ BASE_SYSTEM_PROMPT = """You are "The Lenny Growth Assistant", an elite product m
      ...complete self-contained HTML with CSS & JS...
      :::
 
-4. TONE & STYLE:
-   - Concise, tactical, high-agency, and structured.
-   - Use headings, bold callouts, and bullet points.
+4. PRESENTATION & FORMATTING STANDARDS:
+   - Always structure your response using clear Markdown headings (e.g. `### Core Framework`, `### Tactical Takeaways`).
+   - Use bullet points (`- `) with **bold lead-ins** for every actionable insight (e.g. `- **Point Name**: Explanation...`).
+   - When presenting comparative analysis, competitor breakdowns, or features, ALWAYS format them as clean Markdown tables:
+     | Dimension / Feature | Option A | Option B |
+     | :--- | :--- | :--- |
+   - Never output flat unformatted text. Separate distinct concepts with clean double-spacing.
 """
 
 class AgentService:
@@ -246,9 +250,13 @@ class AgentService:
             user_prompt = (
                 f"User Question: {message}\n\n"
                 f"Lenny's Podcast Transcript Excerpts:\n{context_str}\n\n"
-                f"Answer the user's question with precise tactical advice, quoting and attributing each insight "
-                f"to the respective guest. If the user asked for a reusable guide, checklist, or template, "
-                f"wrap it in a markdown artifact on its own lines: :::artifact{{id=\"{str(uuid.uuid4())[:8]}\" type=\"markdown\" title=\"...\"}}\n...\n:::"
+                f"RESPONSE FORMAT & PRESENTATION RULES:\n"
+                f"1. Ground your answer strictly in the transcript excerpts, citing the guest by name.\n"
+                f"2. Use `### ` Markdown headings to clearly separate distinct themes or frameworks.\n"
+                f"3. Use bullet points (`- `) with **bold lead-ins** for every tactical takeaway.\n"
+                f"4. If presenting a comparison, framework, or competitor breakdown, format it as a clean Markdown table with headers.\n"
+                f"5. If a reusable guide, checklist, or template is requested, encapsulate it in:\n"
+                f":::artifact{{id=\"{str(uuid.uuid4())[:8]}\" type=\"markdown\" title=\"...\"}}\n...\n:::"
             )
 
         # Build messages payload
