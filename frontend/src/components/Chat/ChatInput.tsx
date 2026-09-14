@@ -8,21 +8,53 @@ interface ChatInputProps {
   activeModel?: string;
 }
 
-const INSPIRATION_STARTERS: Record<'chat' | 'ship30' | 'artifact', string[]> = {
+interface InspirationItem {
+  label: string;
+  prompt: string;
+}
+
+const INSPIRATION_STARTERS: Record<'chat' | 'ship30' | 'artifact', InspirationItem[]> = {
   chat: [
-    'Elena Verna on PLG Loops vs Funnels',
-    'Casey Winters on Retention Flywheels',
-    'Shreyas Doshi on Fatal Risk Pre-Mortem',
+    {
+      label: 'Elena Verna on PLG Loops',
+      prompt: 'What does Elena Verna say about PLG loops vs traditional marketing funnels?',
+    },
+    {
+      label: 'Casey Winters on Retention',
+      prompt: 'How does Casey Winters define user retention flywheels vs acquisition channels?',
+    },
+    {
+      label: 'Shreyas Doshi on Pre-Mortems',
+      prompt: "Explain Shreyas Doshi's Fatal Risk Pre-Mortem framework for product launches.",
+    },
   ],
   ship30: [
-    'Why User Retention Compounds While Acquisition Decays',
-    'Elena Verna B2B Self-Serve Growth Playbook',
-    'Rahul Vohra High-Expectation Customer Framework',
+    {
+      label: 'Compounding Retention',
+      prompt: 'Write a Ship 30 essay on why user retention compounds while acquisition channels decay.',
+    },
+    {
+      label: 'Elena Verna B2B Playbook',
+      prompt: 'Write a Ship 30 essay on Elena Verna B2B Self-Serve Growth Playbook.',
+    },
+    {
+      label: 'Rahul Vohra HXC Framework',
+      prompt: 'Write a Ship 30 essay on Rahul Vohra High-Expectation Customer (HXC) framework.',
+    },
   ],
   artifact: [
-    'Rahul Vohra 40% PMF Engine with Real-Time Sliders',
-    'Bob Moesta JTBD Customer Switching Forces Simulator',
-    'Elena Verna B2B Viral Loop & Expansion Calculator',
+    {
+      label: 'Rahul Vohra 40% PMF Engine',
+      prompt: 'Build an interactive HTML/CSS Superhuman 40% PMF Engine based on Rahul Vohra with real-time sliders.',
+    },
+    {
+      label: 'Bob Moesta JTBD Simulator',
+      prompt: 'Build an interactive Bob Moesta Jobs-to-be-Done switching simulator with the 4 forces.',
+    },
+    {
+      label: 'Elena Verna PLG Calculator',
+      prompt: "Create an interactive HTML/CSS Product-Led Growth (PLG) Loop simulator based on Elena Verna's B2B growth models.",
+    },
   ],
 };
 
@@ -103,8 +135,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const handlePickInspiration = (starter: string) => {
-    setInput(starter);
+  const handlePickInspiration = (item: InspirationItem) => {
+    setInput(item.prompt);
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
@@ -112,8 +144,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="p-2 sm:p-3 md:p-4 bg-stone-950/95 backdrop-blur-md border-t border-stone-800/80 safe-pb flex-shrink-0 select-none">
-      <div className="max-w-3xl mx-auto space-y-2.5">
-        {/* Mode Selector Segmented Control & Dynamic Grounding Indicator (Locked h-9 to prevent any layout shift) */}
+      <div className="max-w-3xl xl:max-w-4xl mx-auto space-y-2 sm:space-y-2.5">
+        {/* Mode Selector Segmented Control & Dynamic Grounding Indicator */}
         <div className="flex items-center justify-between gap-2 min-w-0 h-9">
           {/* Segmented Control Bar */}
           <div className="flex items-center p-0.5 bg-stone-900/90 rounded-xl border border-stone-800/90 shadow-inner overflow-x-auto scrollbar-none flex-nowrap shrink-0 h-9">
@@ -122,7 +154,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               type="button"
               onClick={() => setSelectedSkill('chat')}
               title="Verified answers grounded in 5,993 podcast chunks"
-              className={`h-7 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer shrink-0 ${
+              className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer shrink-0 ${
                 selectedSkill === 'chat'
                   ? 'bg-stone-800 text-amber-300 shadow-xs border border-stone-700/60'
                   : 'border border-transparent text-stone-400 hover:text-stone-200 hover:bg-stone-850/50'
@@ -137,7 +169,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               type="button"
               onClick={() => setSelectedSkill('ship30')}
               title="Generates ~1,250-word executive essay rendered in the Deliverables panel"
-              className={`h-7 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer shrink-0 ${
+              className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer shrink-0 ${
                 selectedSkill === 'ship30'
                   ? 'bg-amber-500/15 text-amber-300 shadow-xs border border-amber-500/40'
                   : 'border border-transparent text-stone-400 hover:text-stone-200 hover:bg-stone-850/50'
@@ -152,7 +184,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               type="button"
               onClick={() => setSelectedSkill('artifact')}
               title="Generates interactive HTML prototype or calculator in the Deliverables panel"
-              className={`h-7 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer shrink-0 ${
+              className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors duration-150 cursor-pointer shrink-0 ${
                 selectedSkill === 'artifact'
                   ? 'bg-sky-500/15 text-sky-300 shadow-xs border border-sky-500/40'
                   : 'border border-transparent text-stone-400 hover:text-stone-200 hover:bg-stone-850/50'
@@ -163,8 +195,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             </button>
           </div>
 
-          {/* Contextual Mode Target & Grounding Badge (Locked h-7 and fixed icon wrapper to eliminate shift) */}
-          <div className="hidden sm:flex items-center h-9 shrink-0 min-w-0">
+          {/* Contextual Mode Target & Grounding Badge (Shown only on lg screens to avoid crowding) */}
+          <div className="hidden lg:flex items-center h-9 shrink-0 min-w-0">
             {selectedSkill === 'chat' && (
               <span className="h-7 text-amber-400/90 flex items-center gap-1.5 px-2.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[11px] font-medium truncate">
                 <span className="w-3.5 h-3.5 flex items-center justify-center shrink-0">
@@ -192,30 +224,34 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </div>
         </div>
 
-        {/* Quick Inspiration Starters (Locked h-8 container with stable pill dimensions) */}
+        {/* Quick Inspiration Starters with smooth right-edge fade mask */}
         {!input.trim() && (
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none h-8 text-xs select-none">
-            <div className="flex items-center gap-1 text-[11px] font-semibold text-stone-500 uppercase tracking-wider shrink-0 select-none">
-              <Sparkles className="w-3 h-3 text-amber-400/80 shrink-0" />
-              <span>Try:</span>
+          <div className="relative overflow-hidden">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none h-8 text-xs select-none pr-8">
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-stone-500 uppercase tracking-wider shrink-0 select-none">
+                <Sparkles className="w-3 h-3 text-amber-400/80 shrink-0" />
+                <span>Try:</span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap h-8">
+                {INSPIRATION_STARTERS[selectedSkill].map((item, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handlePickInspiration(item)}
+                    className={`group h-7 px-3 rounded-full border text-stone-300 hover:text-white transition-colors duration-150 cursor-pointer shrink-0 flex items-center gap-1.5 text-xs ${
+                      selectedSkill === 'artifact'
+                        ? 'bg-stone-900/90 hover:bg-sky-500/15 border-stone-800 hover:border-sky-500/40 hover:text-sky-200'
+                        : 'bg-stone-900/90 hover:bg-amber-500/15 border-stone-800 hover:border-amber-500/40 hover:text-amber-200'
+                    }`}
+                  >
+                    <span className="truncate max-w-[200px] sm:max-w-[260px]">{item.label}</span>
+                    <ArrowUpRight className="w-3 h-3 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap h-8">
-              {INSPIRATION_STARTERS[selectedSkill].map((starter, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => handlePickInspiration(starter)}
-                  className={`group h-7 px-3 rounded-full border text-stone-300 hover:text-white transition-colors duration-150 cursor-pointer shrink-0 flex items-center gap-1.5 text-xs ${
-                    selectedSkill === 'artifact'
-                      ? 'bg-stone-900/90 hover:bg-sky-500/15 border-stone-800 hover:border-sky-500/40 hover:text-sky-200'
-                      : 'bg-stone-900/90 hover:bg-amber-500/15 border-stone-800 hover:border-amber-500/40 hover:text-amber-200'
-                  }`}
-                >
-                  <span className="truncate max-w-[220px] sm:max-w-[280px]">{starter}</span>
-                  <ArrowUpRight className="w-3 h-3 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
-                </button>
-              ))}
-            </div>
+            {/* Subtle gradient fade to signal scrollability without ugly clipping */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-stone-950 to-transparent pointer-events-none" />
           </div>
         )}
 

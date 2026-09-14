@@ -36,9 +36,9 @@ export const Header: React.FC<HeaderProps> = ({
   const activeModelObj = models.find(m => m.provider === activeProvider && (!m.model_name || m.model_name === activeModel));
 
   return (
-    <header className="relative z-40 h-14 md:h-16 border-b border-stone-800/80 bg-stone-900/90 backdrop-blur-md px-2.5 sm:px-4 md:px-6 flex items-center justify-between select-none flex-shrink-0">
+    <header className="relative z-40 h-14 md:h-16 border-b border-stone-800/80 bg-stone-900/90 backdrop-blur-md px-2.5 sm:px-4 md:px-6 flex items-center justify-between select-none flex-shrink-0 w-full max-w-full overflow-hidden">
       {/* Brand & Identity */}
-      <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3 min-w-0 pr-2">
         {onToggleMobileSidebar && (
           <button
             onClick={onToggleMobileSidebar}
@@ -55,11 +55,11 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 truncate">
           <h1 className="font-bold text-stone-100 text-xs sm:text-sm tracking-tight truncate">
             Lenny Growth Assistant
           </h1>
-          <p className="text-[10px] sm:text-[11px] text-stone-400 hidden sm:block truncate">
+          <p className="text-[10px] sm:text-[11px] text-stone-400 hidden lg:block truncate">
             Grounded in 300+ Lenny's Podcast Interviews
           </p>
         </div>
@@ -176,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           onClick={onToggleArtifactPanel}
           title={isArtifactPanelOpen ? 'Hide Artifact Viewer' : 'Open Artifact Viewer'}
-          className={`relative px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 md:gap-2 text-xs font-semibold cursor-pointer min-h-[36px] active:scale-95 ${
+          className={`relative px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer min-h-[36px] active:scale-95 shrink-0 ${
             isArtifactPanelOpen
               ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-xs'
               : 'bg-stone-850 text-stone-300 border-stone-700/70 hover:bg-stone-800 hover:text-stone-100'

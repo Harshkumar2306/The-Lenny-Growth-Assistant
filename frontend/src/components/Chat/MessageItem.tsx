@@ -117,7 +117,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   if (isUser) {
     return (
       <div className="py-2.5 sm:py-3 px-3 sm:px-4 md:px-8 bg-transparent">
-        <div className="max-w-3xl mx-auto flex justify-end">
+        <div className="max-w-3xl xl:max-w-4xl mx-auto flex justify-end">
           <div className="flex flex-col items-end max-w-[94%] sm:max-w-[85%] md:max-w-[78%] space-y-1.5">
             {/* Header: Label & Copy */}
             <div className="flex items-center gap-1.5 px-1 text-[11px] text-stone-400">
@@ -150,7 +150,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
   return (
     <div className="py-4 sm:py-6 px-3 sm:px-4 md:px-8 bg-stone-950/60 transition-colors">
-      <div className="max-w-3xl mx-auto flex gap-2.5 sm:gap-4">
+      <div className="max-w-3xl xl:max-w-4xl mx-auto flex gap-2.5 sm:gap-4">
         {/* Avatar */}
         <div className="flex-shrink-0 pt-0.5">
           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-400 p-0.5 shadow-md shadow-amber-950/30">

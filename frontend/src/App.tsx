@@ -348,7 +348,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] min-h-[100dvh] w-full bg-stone-950 text-stone-100 font-sans overflow-hidden overscroll-none">
+    <div className="flex flex-col h-[100dvh] min-h-[100dvh] w-full max-w-[100vw] bg-stone-950 text-stone-100 font-sans overflow-hidden overscroll-none">
       {/* Header */}
       <Header
         activeProvider={activeProvider}
@@ -388,7 +388,7 @@ export const App: React.FC = () => {
               }}
               className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 font-medium transition-all cursor-pointer ${
                 mobileActiveTab === 'artifact'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold shadow-xs'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 font-semibold shadow-xs'
                   : 'text-stone-400 hover:text-stone-200'
               }`}
             >
@@ -400,7 +400,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Main Workspace Layout */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative w-full min-w-0">
         {/* Sidebar */}
         <Sidebar
           sessions={sessions}

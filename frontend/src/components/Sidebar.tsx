@@ -244,26 +244,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Desktop Collapsed View
   if (isCollapsed) {
     return (
-      <div className="hidden md:flex w-12 border-r border-stone-800 bg-stone-950 flex-col items-center py-3 justify-between select-none">
-        <div className="flex flex-col items-center gap-2.5">
+      <div className="hidden md:flex w-14 border-r border-stone-800 bg-stone-950 flex-col items-center py-3.5 justify-between select-none shrink-0 transition-all">
+        <div className="flex flex-col items-center gap-2">
           <button
             onClick={() => setIsCollapsed(false)}
             title="Expand Sidebar"
-            className="p-2 rounded-xl bg-stone-900 text-stone-400 hover:text-stone-100 hover:bg-stone-850 cursor-pointer"
+            className="p-2 rounded-xl bg-stone-900/90 text-stone-400 hover:text-stone-100 hover:bg-stone-850 cursor-pointer transition-colors"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
             onClick={onNewSession}
             title="New Session"
-            className="p-2 rounded-xl bg-amber-500 text-stone-950 hover:bg-amber-400 cursor-pointer shadow-sm"
+            className="p-2 rounded-xl bg-amber-500 text-stone-950 hover:bg-amber-400 active:scale-95 cursor-pointer shadow-sm transition-all"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 
-        <div className="text-[9px] font-mono text-stone-600 -rotate-90 whitespace-nowrap tracking-wider">
-          LENNY
+        {/* Polished Minimalist Brand Mark */}
+        <div className="flex flex-col items-center gap-1.5 py-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-400/80 animate-pulse" />
+          <span className="text-[10px] font-bold tracking-widest text-stone-500 font-mono">
+            LG
+          </span>
         </div>
       </div>
     );
