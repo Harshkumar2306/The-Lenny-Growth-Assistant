@@ -54,7 +54,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({
     }
   );
   // Clean any leftover orphan ::: tags
-  // Clean any leftover orphan ::: tags
   cleanContent = cleanContent.replace(/^\s*:::\s*$/gm, '').trim();
 
   // Enhance formatting for cleaner visual presentation (auto-bullet key terms & title headings)

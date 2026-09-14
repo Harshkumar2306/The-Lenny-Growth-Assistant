@@ -11,6 +11,7 @@ from app.api.sessions import router as sessions_router
 from app.api.models import router as models_router
 from app.api.artifacts import router as artifacts_router
 from app.api.health import router as health_router
+from app.services.llm_gateway import llm_gateway
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,6 +21,10 @@ async def lifespan(app: FastAPI):
     logger.info("Database & services ready.")
     yield
     logger.info("Shutting down backend services.")
+    try:
+        await llm_gateway.aclose()
+    except Exception as e:
+        logger.warning(f"Error closing LLM gateway client: {e}")
 
 app = FastAPI(
     title=settings.APP_NAME,

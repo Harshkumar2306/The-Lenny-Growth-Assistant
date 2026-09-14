@@ -245,7 +245,10 @@ export const App: React.FC = () => {
         setStreamingCitations(citations);
       },
       onArtifact: (art) => {
-        setArtifacts(prev => [...prev, art]);
+        setArtifacts(prev => {
+          const exists = prev.some(a => a.id === art.id);
+          return exists ? prev.map(a => (a.id === art.id ? art : a)) : [...prev, art];
+        });
         setActiveArtifact(art);
         if (isDesktop) {
           setIsArtifactPanelOpen(true);

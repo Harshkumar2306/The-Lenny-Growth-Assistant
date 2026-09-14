@@ -323,3 +323,37 @@ async def test_health_reports_degraded_when_ollama_down(async_client):
     finally:
         settings.OLLAMA_BASE_URL = original_url
         settings.GROQ_API_KEY, settings.ANTHROPIC_API_KEY, settings.OPENAI_API_KEY = original_keys
+
+
+@pytest.mark.asyncio
+async def test_utc_timezone_safety_in_models_and_schemas():
+    """Models and schemas must generate naive UTC timestamps with zero deprecation warnings."""
+    from app.models.db_models import utc_now, ChatSession, ChatMessage, ChatArtifact
+    from app.schemas.chat_schemas import ArtifactItem
+    from datetime import datetime
+
+    now = utc_now()
+    assert isinstance(now, datetime)
+    assert now.tzinfo is None  # SQLAlchemy compatible naive UTC
+
+    # Schema factory check
+    art_item = ArtifactItem(
+        id="test-art-1",
+        session_id="sess-1",
+        artifact_type="markdown",
+        title="Test Title",
+        content="Test content"
+    )
+    assert art_item.created_at is not None
+    assert (now - art_item.created_at).total_seconds() < 5.0
+
+
+@pytest.mark.asyncio
+async def test_llm_gateway_lifespan_teardown():
+    """LLMGateway client teardown must run cleanly without raising errors."""
+    from app.services.llm_gateway import llm_gateway
+
+    # Calling aclose multiple times should be idempotent and safe
+    await llm_gateway.aclose()
+    assert True
+

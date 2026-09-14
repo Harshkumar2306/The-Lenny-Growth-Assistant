@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class CitationItem(BaseModel):
     guest: str
@@ -20,7 +23,7 @@ class ArtifactItem(BaseModel):
     title: str
     content: str
     version: int = 1
-    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    created_at: Optional[datetime] = Field(default_factory=utc_now)
 
 class SessionCreate(BaseModel):
     title: Optional[str] = "New Strategy Session"

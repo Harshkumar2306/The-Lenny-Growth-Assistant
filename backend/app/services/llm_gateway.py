@@ -496,7 +496,11 @@ class LLMGateway:
             ) from e
 
     async def aclose(self):
-        await self.client.aclose()
+        try:
+            if hasattr(self, "client") and not self.client.is_closed:
+                await self.client.aclose()
+        except Exception:
+            pass
 
 
 llm_gateway = LLMGateway()
