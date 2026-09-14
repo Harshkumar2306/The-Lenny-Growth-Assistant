@@ -316,10 +316,34 @@ class AgentService:
         # Step 4: Stream response and detect artifacts
         full_content = ""
         stream_success = False
+        in_raw_code_block = False
+
         try:
             async for token in llm_gateway.stream_chat(messages, provider=provider, model=model):
                 full_content += token
                 stream_success = True
+
+                # For interactive prototype/HTML requests, never stream raw HTML/CSS/JS boilerplate
+                # into the chat window. The clean artifact will render in the Deliverables panel.
+                if is_html_artifact:
+                    lower_content = full_content.lower()
+                    if (
+                        in_raw_code_block
+                        or ":::artifact" in lower_content
+                        or "<!doctype" in lower_content
+                        or "<html" in lower_content
+                        or "```" in lower_content
+                        or "<style" in lower_content
+                        or "<div" in lower_content
+                        or "<body" in lower_content
+                        or "<section" in lower_content
+                        or "<table" in lower_content
+                    ):
+                        if not in_raw_code_block:
+                            in_raw_code_block = True
+                            yield {"type": "status", "data": "Rendering interactive prototype in Deliverables panel..."}
+                        continue
+
                 yield {"type": "token", "data": token}
         except LLMProviderError as e:
             logger.warning(
@@ -338,6 +362,21 @@ class AgentService:
                     async for token in llm_gateway.stream_chat(messages, provider="ollama", model=settings.DEFAULT_LOCAL_MODEL):
                         full_content += token
                         stream_success = True
+                        if is_html_artifact:
+                            lower_content = full_content.lower()
+                            if (
+                                ":::artifact" in lower_content
+                                or "<!doctype" in lower_content
+                                or "<html" in lower_content
+                                or "```html" in lower_content
+                                or "<style" in lower_content
+                                or "<div class=" in lower_content
+                                or "<body" in lower_content
+                            ):
+                                if not in_raw_code_block:
+                                    in_raw_code_block = True
+                                    yield {"type": "status", "data": "Rendering interactive prototype in Deliverables panel..."}
+                                continue
                         yield {"type": "token", "data": token}
                 except Exception as local_err:
                     logger.error(f"Local Ollama fallback also failed: {local_err}")
@@ -453,10 +492,24 @@ class AgentService:
                 r'',
                 full_content
             ).strip()
-            full_content = re.sub(r'<!DOCTYPE\s+html[\s\S]*?</html>', '', full_content, flags=re.IGNORECASE).strip()
-            full_content = re.sub(r'<html[\s\S]*?</html>', '', full_content, flags=re.IGNORECASE).strip()
-            full_content = re.sub(r'```html[\s\S]*?```', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'<!DOCTYPE[\s\S]*?(?:</html>|$)', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'<html[\s\S]*?(?:</html>|$)', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'```(?:html)?[\s\S]*?(?:```|$)', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'<body[\s\S]*?(?:</body>|$)', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'<script[\s\S]*?(?:</script>|$)', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'<style[\s\S]*?(?:</style>|$)', '', full_content, flags=re.IGNORECASE).strip()
             full_content = re.sub(r'^\s*:::\s*$', '', full_content, flags=re.MULTILINE).strip()
+
+            # If full_content is empty or too short after stripping code dumps,
+            # provide a crisp, executive summary introducing the deliverable
+            if len(full_content.strip()) < 80 and artifacts:
+                art = artifacts[0]
+                full_content = (
+                    f"### Interactive Prototype: {art.title}\n\n"
+                    f"I have designed and generated a responsive interactive simulator grounded in the podcast frameworks. "
+                    f"You can explore the live calculator, manipulate interactive sliders, and inspect dynamic calculation outputs "
+                    f"in the **Deliverables panel on the right**."
+                )
 
         for art in artifacts:
             yield {"type": "artifact", "data": art.model_dump(mode="json")}

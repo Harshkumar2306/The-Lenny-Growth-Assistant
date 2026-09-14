@@ -318,7 +318,9 @@ class LLMGateway:
             "stream": True,
             "options": {
                 "temperature": temperature,
-                "num_predict": 4096
+                "num_predict": 2500,
+                "repeat_penalty": 1.15,
+                "stop": ["</html>", ":::", "\n\nUser Question:", "\n\nUser:"]
             }
         }
         try:
