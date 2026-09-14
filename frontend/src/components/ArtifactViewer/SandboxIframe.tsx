@@ -68,19 +68,83 @@ function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     WHOLE_DOCUMENT: true,
     ADD_TAGS: ['script', 'link', 'canvas', 'svg', 'button', 'input', 'form', 'table'],
-    ADD_ATTR: ['onclick', 'oninput', 'onchange', 'style', 'class', 'id', 'type', 'value', 'placeholder', 'min', 'max', 'step', 'checked'],
+    ADD_ATTR: ['onclick', 'oninput', 'onchange', 'style', 'class', 'id', 'type', 'value', 'placeholder', 'min', 'max', 'step', 'checked', 'for', 'rows', 'cols', 'name'],
   });
 }
 
 function buildDocument(htmlContent: string, title: string): string {
-  const sanitized = sanitizeHtml(htmlContent);
-  const tailwindAndChart = `
+  let clean = (htmlContent || '').trim();
+
+  // Strip stray leading non-HTML noise (e.g. ')}', '```html', etc.)
+  const firstTag = clean.search(/<!DOCTYPE|<html|<head|<body|<div|<main|<section|<header/i);
+  if (firstTag > 0) {
+    clean = clean.slice(firstTag).trim();
+  }
+
+  // If </html> exists, truncate any trailing commentary or markdown that leaked
+  const endHtml = clean.lastIndexOf('</html>');
+  if (endHtml !== -1) {
+    clean = clean.slice(0, endHtml + 7).trim();
+  } else {
+    // If no </html>, strip any trailing markdown explanation headers
+    const mdLeak = clean.search(/\n```|\n###\s+Explanation|\n###\s+How\s+to|\n###\s+Example/i);
+    if (mdLeak > 50) {
+      clean = clean.slice(0, mdLeak).trim();
+    }
+  }
+
+  const sanitized = sanitizeHtml(clean);
+  const responsiveShield = `
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      /* Universal Responsive Reset & Layout Shield */
+      *, *::before, *::after {
+        box-sizing: border-box !important;
+      }
+      html, body {
+        margin: 0 !important;
+        padding: 1.25rem !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      /* Prevent horizontal overflow on flex containers: force wrapping on constrained screens */
+      .flex, [class*="flex"] {
+        flex-wrap: wrap !important;
+        max-width: 100% !important;
+      }
+      /* Prevent grid overflow */
+      .grid, [class*="grid"] {
+        max-width: 100% !important;
+      }
+      /* Form elements, inputs, canvases must never spill out */
+      input, textarea, select, button, form, canvas, svg {
+        max-width: 100% !important;
+      }
+      input[type="range"] {
+        width: 100% !important;
+        min-width: 0 !important;
+        cursor: pointer;
+      }
+      label {
+        word-break: break-word;
+      }
+      /* Tables scroll horizontally instead of expanding parent */
+      table {
+        display: block;
+        overflow-x: auto;
+        max-width: 100%;
+        white-space: nowrap;
+      }
+    </style>
   `;
 
   if (sanitized.includes('<head')) {
-    return sanitized.replace('<head>', `<head>${CSP_META}${tailwindAndChart}`);
+    return sanitized.replace('<head>', `<head>${CSP_META}${responsiveShield}`);
   }
 
   return `
@@ -88,19 +152,11 @@ function buildDocument(htmlContent: string, title: string): string {
     <html lang="en">
       <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title}</title>
         ${CSP_META}
-        ${tailwindAndChart}
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 1.25rem;
-          }
-        </style>
+        ${responsiveShield}
       </head>
-      <body class="bg-stone-950 text-stone-100 antialiased min-h-screen">
+      <body class="bg-slate-50 text-slate-900 antialiased min-h-screen">
         ${sanitized}
       </body>
     </html>

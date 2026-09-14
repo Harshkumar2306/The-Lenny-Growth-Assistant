@@ -80,7 +80,12 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
   const [copied, setCopied] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [panelWidth, setPanelWidth] = useState<number>(MIN_PANEL_WIDTH);
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      return Math.min(540, Math.max(MIN_PANEL_WIDTH, Math.floor(window.innerWidth * 0.42)));
+    }
+    return 500;
+  });
   const isResizingRef = useRef(false);
 
   // Dynamic container width classification

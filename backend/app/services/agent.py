@@ -235,15 +235,24 @@ class AgentService:
             system_prompt = SHIP30_SYSTEM_PROMPT
             user_prompt = build_ship30_prompt(message, chunks)
         elif is_html_artifact:
-            system_prompt = BASE_SYSTEM_PROMPT
+            system_prompt = (
+                f"{BASE_SYSTEM_PROMPT}\n\n"
+                f"You are also an elite Frontend UI/UX Engineer. When generating an interactive tool, simulator, calculator, or widget:\n"
+                f"1. RESPONSIVE DESIGN IS CRITICAL: The tool must look gorgeous and fit cleanly across all screen widths (360px to 1024px) without horizontal overflow or cutoffs.\n"
+                f"   - Group each slider/metric into its own card container with a label and live numeric value badge on top (`flex justify-between items-center mb-1`), and a full-width range slider underneath (`w-full`).\n"
+                f"   - Use responsive grid or vertical flex stack (`grid grid-cols-1 sm:grid-cols-2 gap-4` or `flex flex-col gap-4`). Never place multiple sliders in a single unconstrained horizontal row.\n"
+                f"2. MODERN STYLING: Use Tailwind CSS with clean cards (`bg-white shadow-sm border border-slate-200 rounded-xl p-4`), clear typography, and vibrant accent colors.\n"
+                f"3. DYNAMIC INTERACTION: Provide working vanilla JavaScript with live event listeners (`input`, `change`) that instantly update calculations, visual meters, and tactical recommendations.\n"
+                f"4. DELIMITER INTEGRITY: Place the complete HTML inside:\n"
+                f":::artifact{{id=\"{str(uuid.uuid4())[:8]}\" type=\"html\" title=\"{message[:40]}\"}}\n"
+                f"<!DOCTYPE html><html><head><script src=\"https://cdn.tailwindcss.com\"></script></head><body class=\"p-4 sm:p-6 bg-slate-50 font-sans\">...</body></html>\n"
+                f":::\n"
+                f"Close the artifact with `:::` on its own line immediately after </html>. Do NOT put markdown explanations or notes inside the artifact block. Write any conversational explanations outside the artifact."
+            )
             user_prompt = (
                 f"User request: {message}\n\n"
                 f"Podcast Evidence:\n{context_str}\n\n"
-                f"Generate a complete, beautiful, modern HTML/CSS/JS interactive artifact grounded in this knowledge. "
-                f"Encapsulate the HTML strictly in:\n"
-                f":::artifact{{id=\"{str(uuid.uuid4())[:8]}\" type=\"html\" title=\"{message[:40]}\"}}\n"
-                f"<!DOCTYPE html><html><head><script src=\"https://cdn.tailwindcss.com\"></script></head><body class=\"p-6 bg-slate-50 font-sans\">...</body></html>\n:::\n"
-                f"Also provide a brief conversational explanation before or after the artifact."
+                f"Generate the complete, responsive interactive artifact and explain the tactical takeaways."
             )
         else:
             system_prompt = BASE_SYSTEM_PROMPT
@@ -322,6 +331,18 @@ class AgentService:
                         html_code = full_content[start_idx:end_idx + 7]
                     else:
                         html_code = full_content[start_idx:]
+                elif "<html" in full_content:
+                    start_idx = full_content.find("<html")
+                    end_idx = full_content.find("</html>", start_idx)
+                    if end_idx != -1:
+                        html_code = full_content[start_idx:end_idx + 7]
+                    else:
+                        html_code = full_content[start_idx:]
+
+                # Clean any stray leading non-HTML noise before the first opening tag
+                first_tag = re.search(r'<!DOCTYPE|<html|<head|<body|<div|<main|<section|<header', html_code, re.IGNORECASE)
+                if first_tag and first_tag.start() > 0:
+                    html_code = html_code[first_tag.start():].strip()
 
                 artifacts.append(ArtifactItem(
                     id=str(uuid.uuid4()),
@@ -427,6 +448,24 @@ class AgentService:
             if art_type not in ["markdown", "html"]:
                 art_type = "markdown"
             title = attrs.get("title", "Growth Artifact").strip()
+
+            if art_type == "html":
+                # Strip stray leading characters before first valid HTML tag (e.g. ')}', '```html')
+                first_tag = re.search(r'<!DOCTYPE|<html|<head|<body|<div|<main|<section|<header', content, re.IGNORECASE)
+                if first_tag and first_tag.start() > 0:
+                    content = content[first_tag.start():].strip()
+
+                # If </html> exists, truncate any trailing commentary or markdown that leaked into the block
+                html_end = content.rfind('</html>')
+                if html_end != -1:
+                    content = content[:html_end + 7].strip()
+                else:
+                    # If </html> was missing, strip any trailing markdown explanation headers
+                    md_leak = re.search(r'\n```|\n###\s+Explanation|\n###\s+How\s+to|\n###\s+Example', content)
+                    if md_leak and md_leak.start() > 50:
+                        content = content[:md_leak.start()].strip()
+                        if not content.endswith('</html>'):
+                            content += '\n</body></html>'
 
             # NOTE: model-supplied ids are intentionally IGNORED. A 1B model
             # frequently repeats the same id (e.g. the constant "essay" in the
