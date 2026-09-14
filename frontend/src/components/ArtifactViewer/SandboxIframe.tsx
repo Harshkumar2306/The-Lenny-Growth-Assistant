@@ -110,6 +110,8 @@ function buildDocument(htmlContent: string, title: string): string {
         overflow-x: hidden !important;
         word-break: break-word;
         overflow-wrap: break-word;
+        background-color: #0b0f19;
+        color: #f1f5f9;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
       /* Prevent horizontal overflow on flex containers: force wrapping on constrained screens */
@@ -121,9 +123,16 @@ function buildDocument(htmlContent: string, title: string): string {
       .grid, [class*="grid"] {
         max-width: 100% !important;
       }
-      /* Form elements, inputs, canvases must never spill out */
+      /* Form elements, inputs, canvases must never spill out and have legible contrast */
       input, textarea, select, button, form, canvas, svg {
         max-width: 100% !important;
+      }
+      input:not([type="range"]), textarea, select {
+        background-color: #1e293b;
+        color: #f8fafc;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 6px 10px;
       }
       input[type="range"] {
         width: 100% !important;

@@ -381,77 +381,48 @@ class AgentService:
             artifacts = [ship30_art]
 
         elif is_html_artifact:
-            # Check if an HTML artifact was properly captured and is self-contained
+            # Check if an HTML artifact was properly captured, is self-contained,
+            # and meets executive UI/UX quality standards (modern styling, reactive sliders/inputs)
             valid_html_art = None
             for a in artifacts:
                 if a.artifact_type == "html":
                     c_lower = a.content.lower()
-                    if (
-                        len(a.content) >= 600 and
-                        ("<input" in c_lower or "<button" in c_lower) and
-                        "styles.css" not in c_lower and
-                        "script.js" not in c_lower
-                    ):
+                    has_modern_styling = "tailwind" in c_lower or "rounded-" in c_lower or "bg-slate" in c_lower or "bg-zinc" in c_lower or "bg-stone" in c_lower or "bg-neutral" in c_lower
+                    has_reactive_controls = 'type="range"' in c_lower or "addeventlistener" in c_lower or "oninput" in c_lower
+                    is_substantial = len(a.content) >= 1200
+                    no_external_stubs = "styles.css" not in c_lower and "script.js" not in c_lower
+
+                    if is_substantial and has_modern_styling and has_reactive_controls and no_external_stubs:
                         valid_html_art = a
                         break
 
+            # If not a complete, styled interactive prototype, synthesize with grounded templates
             if not valid_html_art:
-                # Discard low-quality stub artifacts
-                artifacts = [a for a in artifacts if a.artifact_type != "html"]
-
-                html_code = ""
-                if "<!DOCTYPE html>" in full_content or "<html" in full_content or "```html" in full_content:
-                    html_block = re.search(r'```html\s*(.*?)\s*```', full_content, re.DOTALL)
-                    if html_block:
-                        html_code = html_block.group(1)
-                    elif "<!DOCTYPE html>" in full_content:
-                        start_idx = full_content.find("<!DOCTYPE html>")
-                        end_idx = full_content.find("</html>", start_idx)
-                        html_code = full_content[start_idx:end_idx + 7] if end_idx != -1 else full_content[start_idx:]
-                    elif "<html" in full_content:
-                        start_idx = full_content.find("<html")
-                        end_idx = full_content.find("</html>", start_idx)
-                        html_code = full_content[start_idx:end_idx + 7] if end_idx != -1 else full_content[start_idx:]
-
-                    first_tag = re.search(r'<!DOCTYPE|<html|<head|<body|<div|<main|<section|<header', html_code, re.IGNORECASE)
-                    if first_tag and first_tag.start() > 0:
-                        html_code = html_code[first_tag.start():].strip()
-
-                c_lower = html_code.lower()
-                is_usable = (
-                    len(html_code) >= 600 and
-                    "<body" in c_lower and
-                    ("<input" in c_lower or "<button" in c_lower) and
-                    "styles.css" not in c_lower and
-                    "script.js" not in c_lower
+                synth_title, synth_html = synthesize_html_artifact(message, full_content, chunks)
+                art_id = str(uuid.uuid4())
+                html_art = ArtifactItem(
+                    id=art_id,
+                    session_id=session_id,
+                    artifact_type="html",
+                    title=synth_title,
+                    content=synth_html,
+                    version=1
                 )
-
-                # If LLM produced a stub or non-executable HTML, trigger bulletproof synthesizer!
-                if not is_usable:
-                    synth_title, synth_html = synthesize_html_artifact(message, full_content, chunks)
-                    art_id = str(uuid.uuid4())
-                    html_art = ArtifactItem(
-                        id=art_id,
-                        session_id=session_id,
-                        artifact_type="html",
-                        title=synth_title,
-                        content=synth_html,
-                        version=1
-                    )
-                    artifacts = [html_art]
-                else:
-                    art_id = str(uuid.uuid4())
-                    html_art = ArtifactItem(
-                        id=art_id,
-                        session_id=session_id,
-                        artifact_type="html",
-                        title=f"Interactive Prototype: {message[:35]}",
-                        content=html_code,
-                        version=1
-                    )
-                    artifacts = [html_art]
+                artifacts = [html_art]
             else:
                 artifacts = [valid_html_art]
+
+            # Strip raw HTML dumps and artifact delimiters from the chat message
+            # so the chat feed stays clean while the artifact renders in the side panel
+            full_content = re.sub(
+                r':::artifact\s*(?:\{[^}]*\}|[^\n]*)\s*([\s\S]*?)(?::::|$)',
+                r'',
+                full_content
+            ).strip()
+            full_content = re.sub(r'<!DOCTYPE\s+html[\s\S]*?</html>', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'<html[\s\S]*?</html>', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'```html[\s\S]*?```', '', full_content, flags=re.IGNORECASE).strip()
+            full_content = re.sub(r'^\s*:::\s*$', '', full_content, flags=re.MULTILINE).strip()
 
         for art in artifacts:
             yield {"type": "artifact", "data": art.model_dump(mode="json")}

@@ -362,3 +362,49 @@ async def test_process_chat_ship30_bangaly_kaba_synthesis(monkeypatch):
     assert "# Magnetic Headline" not in art["content"]
 
 
+@pytest.mark.asyncio
+async def test_process_chat_superhuman_pmf_calculator_synthesis(monkeypatch):
+    """When model generates crude unstyled HTML for Superhuman PMF, synthesizer must deliver the full PMF Engine."""
+    from app.services.llm_gateway import llm_gateway
+
+    async def fake_validate(*args, **kwargs):
+        return None
+
+    # Simulates the exact crude 1B HTML output from user's screenshot
+    crude_html = (
+        ':::artifact{type="html" title="Interactive Prototype: Create an i..."}\n'
+        '<!DOCTYPE html><html><head><style>body { font-family: Arial; }</style></head>'
+        '<body><h1>Product-Market Fit Calculator</h1>'
+        '<input type="text" id="product-name">'
+        '<button onclick="calculateProductMarketFitScore()">Calculate Score</button>'
+        '</body></html>\n:::\n'
+        'This interactive calculator will guide users through finding product-market fit...'
+    )
+
+    async def fake_stream(messages, provider=None, model=None):
+        yield crude_html
+
+    monkeypatch.setattr(llm_gateway, "validate_provider", fake_validate)
+    monkeypatch.setattr(llm_gateway, "stream_chat", fake_stream)
+
+    prompt = "Create an interactive HTML/CSS Product-Market Fit calculator using Rahul Vohra Superhuman 56% rule"
+    events = []
+    async for event in agent_service.process_chat(prompt, skill="chat", session_id="sess-pmf-synthesis"):
+        events.append(event)
+
+    artifact_events = [e for e in events if e["type"] == "artifact"]
+    assert len(artifact_events) == 1, "Must emit complete synthesized PMF Engine artifact"
+    art = artifact_events[0]["data"]
+    assert art["artifact_type"] == "html"
+    assert "Superhuman" in art["title"] or "PMF Engine" in art["title"]
+    assert "tailwindcss" in art["content"], "Must contain modern Tailwind CSS styling"
+    assert "sliderVery" in art["content"], "Must contain reactive survey distribution sliders"
+    assert "40%" in art["content"], "Must feature the Sean Ellis 40% threshold benchmark"
+    assert "50/50" in art["content"], "Must feature Rahul Vohra's 50/50 roadmap allocator"
+
+    done = next(e for e in events if e["type"] == "done")
+    # Raw HTML must be stripped from conversational chat
+    assert "<!DOCTYPE html>" not in done["data"]["full_content"]
+
+
+
