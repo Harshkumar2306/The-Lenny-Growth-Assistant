@@ -187,10 +187,10 @@ cd "The Lenny Growth Assistant"
 PYTHONPATH=backend .venv/bin/python -m pytest backend/tests/ -v
 ```
 
-### Test Coverage Highlights (34/34 Passing)
+### Test Coverage Highlights (35/35 Passing)
 - **API Contracts (`test_api.py`):** Health status, sessions CRUD, model activation, Pydantic 422 validations, non-streaming `stream=false` JSON parity.
 - **Resilience & Fallback (`test_persistence.py`):** Automatic SQLite degradation, foreign-key cascade, conversation and artifact versioning persistence.
-- **RAG Grounding & Gates (`test_rag.py`):** Vector similarity, Shreyas Doshi & Elena Verna chunk retrieval, duplicate episode deduplication, semantic negative rejection.
+- **RAG Grounding & Gates (`test_rag.py`):** Vector similarity, Shreyas Doshi & Elena Verna chunk retrieval, duplicate episode deduplication, semantic negative rejection, and rich deliverable prompt gate regression test.
 - **Ship 30 Skill (`test_ship30.py`):** 1-3-1 prompt formatting, parsing edge-cases, artifact extraction regex, long-turn conversion regression prevention.
 
 ---
