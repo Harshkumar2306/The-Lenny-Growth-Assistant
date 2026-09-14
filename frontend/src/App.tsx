@@ -249,6 +249,8 @@ export const App: React.FC = () => {
         setActiveArtifact(art);
         if (isDesktop) {
           setIsArtifactPanelOpen(true);
+        } else {
+          setMobileActiveTab('artifact');
         }
       },
       onDone: async (data: any) => {
@@ -286,6 +288,13 @@ export const App: React.FC = () => {
   const handleTriggerShip30 = (content: string) => {
     const prompt = `Convert this strategic insight into a Ship 30 for 30 essay:\n\n${content.slice(0, 450)}`;
     handleSendMessage(prompt, 'ship30');
+  };
+
+  const handleTriggerDeliverable = (prompt: string, skill: string) => {
+    if (!isDesktop) {
+      setMobileActiveTab('chat');
+    }
+    handleSendMessage(prompt, skill);
   };
 
   const handleOpenArtifact = (art: Artifact) => {
@@ -428,6 +437,7 @@ export const App: React.FC = () => {
                 artifactsList={artifacts}
                 onSelectArtifact={setActiveArtifact}
                 onClose={() => setIsArtifactPanelOpen(false)}
+                onTriggerDeliverable={handleTriggerDeliverable}
                 isDesktop={true}
               />
             )}
@@ -444,6 +454,7 @@ export const App: React.FC = () => {
                   setMobileActiveTab('chat');
                   setIsArtifactPanelOpen(false);
                 }}
+                onTriggerDeliverable={handleTriggerDeliverable}
                 isDesktop={false}
               />
             </div>
