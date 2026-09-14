@@ -45,18 +45,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   // Real-time dynamic auto-detection: as user types or pastes, highlight the matching mode tab
   useEffect(() => {
-    const text = input.toLowerCase();
-    if (!text.trim()) return;
+    const text = input.trim().toLowerCase();
+    if (!text) return;
 
     const isHtml = /\b(interactive\s+html|html\/js|html\s+prototype|interactive\s+prototype|build\s+an\s+interactive|interactive\s+simulator|interactive\s+calculator|interactive\s+widget|with\s+(?:real-time|interactive)\s+sliders|pmf\s+engine|switching\s+simulator)\b/i.test(text) ||
       (/\b(interactive|prototype|simulator|calculator|widget|sliders)\b/i.test(text) && /\b(html|engine|pmf|jtbd|loop)\b/i.test(text));
 
     const isShip30 = /\b(ship\s*30\s+for\s+30|ship\s*30\s+essay|ship\s*30|atomic\s+essay|turn\s+into\s+(?:a\s+)?ship\s*30|write\s+(?:a\s+)?ship\s*30)\b/i.test(text);
 
-    if (isHtml && !isShip30) {
-      setSelectedSkill('artifact');
-    } else if (isShip30) {
+    const isQnA = /\b(compare|what|how|why|explain|tell\s+me|who|when|which|where|difference\s+between|versus|vs\.?|pros\s+and\s+cons|should|does|can|advice|breakdown|evaluate)\b/i.test(text) ||
+      text.includes('?') ||
+      (!isHtml && !isShip30 && text.split(/\s+/).length >= 3);
+
+    if (isShip30) {
       setSelectedSkill('ship30');
+    } else if (isHtml) {
+      setSelectedSkill('artifact');
+    } else if (isQnA) {
+      setSelectedSkill('chat');
     }
   }, [input]);
 
@@ -71,11 +77,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     const isHtml = /\b(interactive\s+html|html\/js|html\s+prototype|interactive\s+prototype|build\s+an\s+interactive|interactive\s+simulator|interactive\s+calculator|interactive\s+widget|with\s+(?:real-time|interactive)\s+sliders|pmf\s+engine|switching\s+simulator)\b/i.test(lower) ||
       (/\b(interactive|prototype|simulator|calculator|widget|sliders)\b/i.test(lower) && /\b(html|engine|pmf|jtbd|loop)\b/i.test(lower));
     const isShip30 = /\b(ship\s*30\s+for\s+30|ship\s*30\s+essay|ship\s*30|atomic\s+essay|turn\s+into\s+(?:a\s+)?ship\s*30|write\s+(?:a\s+)?ship\s*30)\b/i.test(lower);
+    const isQnA = /\b(compare|what|how|why|explain|tell\s+me|who|when|which|where|difference\s+between|versus|vs\.?|pros\s+and\s+cons|should|does|can|advice|breakdown|evaluate)\b/i.test(lower) ||
+      lower.includes('?') ||
+      (!isHtml && !isShip30 && text.split(/\s+/).length >= 3);
 
-    if (isHtml && !isShip30) {
-      effectiveSkill = 'artifact';
-    } else if (isShip30) {
+    if (isShip30) {
       effectiveSkill = 'ship30';
+    } else if (isHtml) {
+      effectiveSkill = 'artifact';
+    } else if (isQnA) {
+      effectiveSkill = 'chat';
     }
 
     onSendMessage(text, effectiveSkill);

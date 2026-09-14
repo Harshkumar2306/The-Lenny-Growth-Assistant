@@ -86,13 +86,23 @@ class AgentService:
         if is_prompt_html:
             return {"ship30": False, "html": True}
 
-        # 3. If prompt is neutral, fall back to explicit UI selection
+        # 3. High-confidence explicit Grounded Q&A inquiry intent in prompt (overrides sticky tab)
+        is_prompt_qna = bool(
+            re.search(
+                r'\b(?:compare|what|how|why|explain|tell\s+me|who|when|which|where|difference\s+between|versus|vs\.?|pros\s+and\s+cons|should|does|can|advice|breakdown|evaluate)\b',
+                msg_lower
+            ) or '?' in msg_lower
+        )
+        if is_prompt_qna:
+            return {"ship30": False, "html": False}
+
+        # 4. If prompt is neutral, fall back to explicit UI selection
         if skill == "ship30":
             return {"ship30": True, "html": False}
         if skill == "artifact":
             return {"ship30": False, "html": True}
 
-        # 4. Default: pure Grounded Q&A Chat
+        # 5. Default: pure Grounded Q&A Chat
         return {"ship30": False, "html": False}
 
     async def process_chat(
