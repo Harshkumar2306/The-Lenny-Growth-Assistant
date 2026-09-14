@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   X,
   Copy,
@@ -12,6 +12,8 @@ import {
   Minimize2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Sparkles,
   Zap,
   Layers,
@@ -88,6 +90,81 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
   });
   const [isResizing, setIsResizing] = useState(false);
   const isResizingRef = useRef(false);
+
+  // Multi-Deliverables Navigation & Switcher State (Latest appears first)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+  const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Reverse chronological order: newest deliverable is at index 0 (first in view)
+  const sortedArtifacts = useMemo(() => {
+    return [...artifactsList].reverse();
+  }, [artifactsList]);
+
+  const currentSortedIdx = artifact
+    ? sortedArtifacts.findIndex((a) => a.id === artifact.id)
+    : -1;
+
+  const checkScroll = useCallback(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkScroll, { passive: true });
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [checkScroll, artifactsList.length]);
+
+  const handleScrollBy = (offset: number) => {
+    if (tabsContainerRef.current) {
+      tabsContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  // Auto-scroll active deliverable tab into view smoothly
+  useEffect(() => {
+    if (artifact?.id && tabRefs.current[artifact.id]) {
+      tabRefs.current[artifact.id]?.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'nearest',
+        block: 'nearest',
+      });
+    }
+  }, [artifact?.id]);
+
+  // Close dropdown on outside click or ESC key
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDropdownOpen(false);
+      }
+    };
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDropdownOpen]);
 
   // Dynamic container width classification
   const currentWidth = !isDesktop || isFullscreen
@@ -377,8 +454,6 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const currentIdx = artifactsList.findIndex((a) => a.id === artifact.id);
-
   return (
     <>
       {/* Global Drag Shield Overlay during active resize */}
@@ -460,21 +535,21 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
           {artifactsList.length > 1 && isExpanded && (
             <div className="flex items-center gap-0.5 bg-stone-950 px-1.5 py-0.5 rounded-lg border border-stone-800 text-[10px]">
               <button
-                disabled={currentIdx <= 0}
-                onClick={() => onSelectArtifact(artifactsList[currentIdx - 1])}
+                disabled={currentSortedIdx <= 0}
+                onClick={() => onSelectArtifact(sortedArtifacts[currentSortedIdx - 1])}
                 className="p-1 text-stone-400 hover:text-stone-200 disabled:opacity-30 cursor-pointer"
-                title="Previous artifact"
+                title="Newer deliverable"
               >
                 <ChevronLeft className="w-3 h-3" />
               </button>
               <span className="font-mono text-stone-400 px-1">
-                {currentIdx + 1}/{artifactsList.length}
+                {currentSortedIdx + 1}/{sortedArtifacts.length}
               </span>
               <button
-                disabled={currentIdx >= artifactsList.length - 1}
-                onClick={() => onSelectArtifact(artifactsList[currentIdx + 1])}
+                disabled={currentSortedIdx >= sortedArtifacts.length - 1}
+                onClick={() => onSelectArtifact(sortedArtifacts[currentSortedIdx + 1])}
                 className="p-1 text-stone-400 hover:text-stone-200 disabled:opacity-30 cursor-pointer"
-                title="Next artifact"
+                title="Older deliverable"
               >
                 <ChevronRight className="w-3 h-3" />
               </button>
@@ -550,40 +625,173 @@ export const ArtifactPanel: React.FC<ArtifactPanelProps> = ({
 
       {/* Multi-Artifact Tab Switcher Strip (When 2+ deliverables generated) */}
       {artifactsList.length > 1 && (
-        <div className="bg-stone-950/90 border-b border-stone-800/80 px-2 sm:px-2.5 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-shrink-0">
-          <div className="text-[10px] uppercase font-bold text-stone-500 tracking-wider pl-1 pr-1 flex items-center gap-1 flex-shrink-0">
-            <Layers className="w-3 h-3 text-stone-400" />
-            {!isCompact && <span>Deliverables ({artifactsList.length}):</span>}
+        <div className="bg-stone-950/95 border-b border-stone-850 px-2 sm:px-2.5 py-1.5 flex items-center gap-1.5 flex-shrink-0 relative z-20 select-none">
+          {/* Executive Deliverables Dropdown Menu Trigger */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer border shadow-xs flex-shrink-0 ${
+                isDropdownOpen
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                  : 'bg-stone-900/80 hover:bg-stone-850 text-stone-300 hover:text-white border-stone-800'
+              }`}
+              title="Click to view all deliverables list"
+            >
+              <Layers className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+              <span className="tracking-wide text-[11px]">
+                Deliverables <span className="font-mono text-amber-300/90 font-bold">({artifactsList.length})</span>
+              </span>
+              {isDropdownOpen ? (
+                <ChevronUp className="w-3 h-3 text-stone-400 flex-shrink-0" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-stone-400 flex-shrink-0" />
+              )}
+            </button>
+
+            {/* Quick-Jump Dropdown Popover */}
+            {isDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-72 sm:w-80 max-h-80 overflow-y-auto bg-stone-900/98 backdrop-blur-md border border-stone-750 rounded-xl shadow-2xl p-1.5 z-50 divide-y divide-stone-800/60 scrollbar-thin">
+                <div className="px-2.5 py-1.5 text-[10px] uppercase font-bold text-stone-400 tracking-wider flex items-center justify-between">
+                  <span>Deliverables (Latest First)</span>
+                  <span className="text-amber-400 font-mono">{artifactsList.length} total</span>
+                </div>
+                <div className="py-1 space-y-1">
+                  {sortedArtifacts.map((art, idx) => {
+                    const isSelected = art.id === artifact.id;
+                    const isHtmlArt = art.artifact_type === 'html';
+                    const isFirst = idx === 0;
+                    const originalNumber = artifactsList.length - idx;
+                    return (
+                      <button
+                        key={art.id || idx}
+                        onClick={() => {
+                          onSelectArtifact(art);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`w-full text-left p-2 rounded-lg flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-500/15 border border-amber-500/30 text-amber-200 shadow-xs'
+                            : 'hover:bg-stone-800/80 text-stone-300 border border-transparent'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div
+                            className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 border ${
+                              isHtmlArt
+                                ? 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            }`}
+                          >
+                            {isHtmlArt ? <Globe className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-semibold truncate leading-tight">
+                              {art.title}
+                            </div>
+                            <div className="text-[10px] text-stone-400 mt-0.5 flex items-center gap-1.5 font-mono">
+                              <span>#{originalNumber}</span>
+                              <span>•</span>
+                              <span>{isHtmlArt ? 'HTML Prototype' : 'Ship 30 Essay'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {isFirst && (
+                            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                              Latest
+                            </span>
+                          )}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-          {artifactsList.map((art, idx) => {
-            const isCurrent = art.id === artifact.id;
-            const isHtmlArt = art.artifact_type === 'html';
-            return (
+
+          <div className="h-4 w-px bg-stone-800 flex-shrink-0" />
+
+          {/* Sliding Tabs Container with Left/Right Scroll Controls */}
+          <div className="relative flex-1 min-w-0 flex items-center">
+            {/* Scroll Left Button */}
+            {canScrollLeft && (
               <button
-                key={art.id || idx}
-                onClick={() => onSelectArtifact(art)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex-shrink-0 ${
-                  isCurrent
-                    ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-xs font-semibold'
-                    : 'bg-stone-900/60 text-stone-400 hover:text-stone-200 hover:bg-stone-800 border border-stone-800/60'
-                }`}
+                onClick={() => handleScrollBy(-180)}
+                className="absolute left-0 z-10 p-1 rounded-md bg-stone-900/90 hover:bg-stone-800 text-stone-300 border border-stone-700 shadow-md cursor-pointer transition-all"
+                title="Scroll Left"
               >
-                {isHtmlArt ? (
-                  <Globe className={`w-3 h-3 flex-shrink-0 ${isCurrent ? 'text-sky-400' : 'text-sky-500/70'}`} />
-                ) : (
-                  <FileText className={`w-3 h-3 flex-shrink-0 ${isCurrent ? 'text-amber-400' : 'text-amber-500/70'}`} />
-                )}
-                <span className={`${isCompact ? 'max-w-[90px]' : 'max-w-[140px]'} truncate`}>{art.title}</span>
-                <span
-                  className={`text-[9px] px-1 py-0.2 rounded font-mono ${
-                    isHtmlArt ? 'bg-sky-500/10 text-sky-400' : 'bg-amber-500/10 text-amber-400'
-                  }`}
-                >
-                  {isHtmlArt ? 'HTML' : 'MD'}
-                </span>
+                <ChevronLeft className="w-3 h-3" />
               </button>
-            );
-          })}
+            )}
+
+            {/* Tabs Strip */}
+            <div
+              ref={tabsContainerRef}
+              className="flex-1 overflow-x-auto scrollbar-none flex items-center gap-1.5 py-0.5 px-0.5 scroll-smooth"
+            >
+              {sortedArtifacts.map((art, idx) => {
+                const isCurrent = art.id === artifact.id;
+                const isHtmlArt = art.artifact_type === 'html';
+                const isLatest = idx === 0;
+                return (
+                  <button
+                    key={art.id || idx}
+                    ref={(el) => (tabRefs.current[art.id] = el)}
+                    onClick={() => onSelectArtifact(art)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer flex-shrink-0 select-none ${
+                      isCurrent
+                        ? 'bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 text-amber-200 border border-amber-500/50 shadow-sm shadow-amber-950/40 font-semibold'
+                        : 'bg-stone-900/80 text-stone-400 hover:text-stone-200 hover:bg-stone-850 border border-stone-800/80'
+                    }`}
+                  >
+                    {isCurrent && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.8)] flex-shrink-0" />
+                    )}
+
+                    {isHtmlArt ? (
+                      <Globe className={`w-3 h-3 flex-shrink-0 ${isCurrent ? 'text-sky-400' : 'text-sky-500/70'}`} />
+                    ) : (
+                      <FileText className={`w-3 h-3 flex-shrink-0 ${isCurrent ? 'text-amber-400' : 'text-amber-500/70'}`} />
+                    )}
+
+                    <span className={`${isCompact ? 'max-w-[90px]' : 'max-w-[150px]'} truncate`}>
+                      {art.title}
+                    </span>
+
+                    {/* Format Badge */}
+                    <span
+                      className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                        isHtmlArt ? 'bg-sky-500/10 text-sky-400 border border-sky-500/25' : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'
+                      }`}
+                    >
+                      {isHtmlArt ? 'HTML' : 'MD'}
+                    </span>
+
+                    {/* Latest Badge */}
+                    {isLatest && (
+                      <span className="text-[8px] font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-xs flex-shrink-0">
+                        Latest
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Scroll Right Button */}
+            {canScrollRight && (
+              <button
+                onClick={() => handleScrollBy(180)}
+                className="absolute right-0 z-10 p-1 rounded-md bg-stone-900/90 hover:bg-stone-800 text-stone-300 border border-stone-700 shadow-md cursor-pointer transition-all"
+                title="Scroll Right"
+              >
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
