@@ -390,12 +390,18 @@ class LLMGateway:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
+        # Groq on-demand tier caps qwen models at 1,000 output tokens per minute (OTPM).
+        # Requesting 4096 triggers instant HTTP 429 rejection before generation starts.
+        max_tokens = 4096
+        if provider_name.upper() == "GROQ" and "qwen" in model.lower():
+            max_tokens = 950
+
         payload = {
             "model": model,
             "messages": messages,
             "stream": True,
             "temperature": temperature,
-            "max_tokens": 4096
+            "max_tokens": max_tokens
         }
         try:
             async with self.client.stream("POST", endpoint, headers=headers, json=payload, timeout=90.0) as resp:
@@ -410,6 +416,12 @@ class LLMGateway:
                     if resp.status_code in (401, 403):
                         raise LLMProviderError(
                             f"{provider_name} rejected the API key (HTTP {resp.status_code}). Check your credentials.",
+                            provider=provider_name.lower(),
+                            detail=err_msg,
+                        )
+                    if resp.status_code == 429:
+                        raise LLMProviderError(
+                            f"{provider_name} rate limit reached (HTTP 429).",
                             provider=provider_name.lower(),
                             detail=err_msg,
                         )

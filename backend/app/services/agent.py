@@ -250,14 +250,29 @@ class AgentService:
             return
 
         # Step 3: Build Context & Prompt
+        # For cloud providers with strict TPM limits (like Groq 8K TPM on Qwen),
+        # use the top 3 highest-scoring chunks and compact them to core paragraphs (~250 words each)
+        # to ensure prompt tokens remain well under 1,500 tokens.
+        effective_provider = (provider or settings.ACTIVE_PROVIDER or "ollama").lower()
+        if effective_provider == "groq":
+            prompt_chunks = []
+            for c in chunks[:3]:
+                c_copy = dict(c)
+                words = c.get("text", "").split()
+                if len(words) > 250:
+                    c_copy["text"] = " ".join(words[:250]) + "..."
+                prompt_chunks.append(c_copy)
+        else:
+            prompt_chunks = chunks
+
         context_str = ""
-        for i, c in enumerate(chunks):
+        for i, c in enumerate(prompt_chunks):
             context_str += f"\n--- Source {i+1}: {c['guest']} - \"{c['title']}\" (Timestamp: {c['timestamp']}) ---\n"
             context_str += f"{c['text']}\n"
 
         if is_ship30:
             system_prompt = SHIP30_SYSTEM_PROMPT
-            user_prompt = build_ship30_prompt(message, chunks)
+            user_prompt = build_ship30_prompt(message, prompt_chunks)
         elif is_html_artifact:
             system_prompt = (
                 f"{BASE_SYSTEM_PROMPT}\n\n"
@@ -300,31 +315,50 @@ class AgentService:
 
         # Step 4: Stream response and detect artifacts
         full_content = ""
+        stream_success = False
         try:
             async for token in llm_gateway.stream_chat(messages, provider=provider, model=model):
                 full_content += token
+                stream_success = True
                 yield {"type": "token", "data": token}
         except LLMProviderError as e:
-            logger.error(
-                f"LLM provider failure mid-stream ({e.provider})",
+            logger.warning(
+                f"LLM provider failure mid-stream ({e.provider}): {e.message}",
                 extra={"provider": e.provider, "detail": e.detail},
             )
-            if full_content:
-                yield {"type": "status", "data": f"Stream interrupted: {e.message}"}
-            else:
-                yield {"type": "error", "data": e.message}
-            yield {
-                "type": "done",
-                "data": {
-                    "session_id": session_id,
-                    "error": e.message,
-                    "provider_error": True,
-                    "full_content": full_content,
-                    "artifacts_count": 0,
-                    "suggestions": ["Switch to Ollama and retry", "Check the model configuration in the header"]
+            # If a cloud provider failed (e.g. Groq 429 rate limit or network issue) and no/little content streamed,
+            # gracefully fall back to local Ollama!
+            is_cloud_fail = (effective_provider != "ollama") and (
+                "429" in e.message or "rate limit" in e.message.lower() or "timeout" in e.message.lower() or "503" in e.message or "blocked" in e.message.lower() or "error" in e.message.lower()
+            )
+            if is_cloud_fail and len(full_content.strip()) < 40:
+                full_content = ""
+                yield {"type": "status", "data": "Groq rate limit reached (8K TPM). Seamlessly switching to local Llama 3.2..."}
+                try:
+                    async for token in llm_gateway.stream_chat(messages, provider="ollama", model=settings.DEFAULT_LOCAL_MODEL):
+                        full_content += token
+                        stream_success = True
+                        yield {"type": "token", "data": token}
+                except Exception as local_err:
+                    logger.error(f"Local Ollama fallback also failed: {local_err}")
+
+            if not stream_success:
+                if full_content:
+                    yield {"type": "status", "data": f"Stream interrupted: {e.message}"}
+                else:
+                    yield {"type": "error", "data": e.message}
+                yield {
+                    "type": "done",
+                    "data": {
+                        "session_id": session_id,
+                        "error": e.message,
+                        "provider_error": True,
+                        "full_content": full_content,
+                        "artifacts_count": 0,
+                        "suggestions": ["Switch to Ollama in the top header", "Wait a few seconds for Groq rate limit to reset"]
+                    }
                 }
-            }
-            return
+                return
 
         # Step 5: Parse artifacts or synthesize deliverables
         if is_ship30 or is_html_artifact:
