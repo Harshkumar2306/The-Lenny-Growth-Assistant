@@ -43,6 +43,7 @@ export interface ModelStatus {
   model_name: string;
   available: boolean;
   is_local: boolean;
+  is_custom?: boolean;
   details?: string;
 }
 
@@ -221,4 +222,21 @@ export async function streamChat({
   } catch (err: any) {
     onError(err.message || 'Stream connection error');
   }
+}
+
+export async function removeCustomModel(provider: string, model_name: string): Promise<{
+  active_provider: string;
+  active_model: string;
+  models: ModelStatus[];
+}> {
+  const res = await fetch(`${API_BASE}/models/remove`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider, model_name }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Failed to remove model');
+  }
+  return res.json();
 }

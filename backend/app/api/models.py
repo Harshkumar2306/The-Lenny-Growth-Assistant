@@ -137,3 +137,30 @@ async def configure_provider_key(payload: Dict[str, str]):
         "active_provider": settings.ACTIVE_PROVIDER,
         "models": [m.model_dump() for m in models]
     }
+
+class RemoveCustomModelRequest(BaseModel):
+    provider: str
+    model_name: str
+
+@router.delete("/remove", response_model=Dict[str, Any])
+async def remove_custom_model_endpoint(payload: RemoveCustomModelRequest):
+    provider = payload.provider.strip().lower()
+    model_name = payload.model_name.strip()
+    
+    success = llm_gateway.remove_custom_model(provider, model_name)
+    if not success:
+        raise HTTPException(status_code=404, detail="Custom model not found.")
+        
+    # If we just removed the active model, fallback to default Ollama
+    if settings.ACTIVE_PROVIDER == provider and settings.ACTIVE_MODEL == model_name:
+        settings.ACTIVE_PROVIDER = "ollama"
+        settings.ACTIVE_MODEL = settings.DEFAULT_LOCAL_MODEL
+        
+    models = await llm_gateway.get_available_models()
+    return {
+        "status": "success",
+        "message": f"Removed model {model_name}",
+        "active_provider": settings.ACTIVE_PROVIDER,
+        "active_model": settings.ACTIVE_MODEL,
+        "models": [m.model_dump() for m in models]
+    }

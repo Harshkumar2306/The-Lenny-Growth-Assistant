@@ -83,6 +83,15 @@ class LLMGateway:
             details=f"Custom {provider_clean.upper()} model active"
         )
 
+    def remove_custom_model(self, provider: str, model_name: str) -> bool:
+        provider_clean = provider.strip().lower()
+        model_clean = model_name.strip()
+        key = f"{provider_clean}:{model_clean}"
+        if key in self.custom_models:
+            del self.custom_models[key]
+            return True
+        return False
+
     async def get_available_models(self) -> List[ModelStatus]:
         models = []
 
@@ -122,6 +131,7 @@ class LLMGateway:
                 model_name=cm["model_name"],
                 available=True,
                 is_local=False,
+                is_custom=True,
                 details=f"Connected ({cm['provider'].upper()})"
             ))
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Cpu, Cloud, Database, PanelRight, ChevronDown, Check, Plus, Menu } from 'lucide-react';
-import { ModelStatus, HealthInfo } from '../lib/api';
+import { Sparkles, Cpu, Cloud, Database, PanelRight, ChevronDown, Check, Plus, Menu, X } from 'lucide-react';
+import { ModelStatus, HealthInfo, removeCustomModel } from '../lib/api';
 import { AddModelModal } from './AddModelModal';
 
 interface HeaderProps {
@@ -34,6 +34,15 @@ export const Header: React.FC<HeaderProps> = ({
   const [showAddModelModal, setShowAddModelModal] = useState(false);
 
   const activeModelObj = models.find(m => m.provider === activeProvider && (!m.model_name || m.model_name === activeModel));
+
+  const handleRemoveModel = async (provider: string, model_name: string) => {
+    try {
+      await removeCustomModel(provider, model_name);
+      onRefreshModels();
+    } catch (err: any) {
+      alert(err.message || 'Failed to remove model');
+    }
+  };
 
   return (
     <header className="relative z-40 h-14 md:h-16 border-b border-stone-800/80 bg-stone-900/90 backdrop-blur-md px-2.5 sm:px-4 md:px-6 flex items-center justify-between select-none flex-shrink-0 w-full">
@@ -108,40 +117,53 @@ export const Header: React.FC<HeaderProps> = ({
                     .map((m) => {
                       const isSelected = m.provider === activeProvider && (m.model_name === activeModel || !m.model_name);
                     return (
-                      <button
-                        key={`${m.provider}-${m.model_name}`}
-                        onClick={() => {
-                          onSelectModel(m.provider, m.model_name);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-xl flex items-start gap-2.5 transition-colors cursor-pointer ${
-                          isSelected
-                            ? 'bg-amber-500/15 text-amber-200 border border-amber-500/30'
-                            : 'hover:bg-stone-800/80 text-stone-200'
-                        }`}
-                      >
-                        <div className="mt-0.5">
-                          {m.is_local ? (
-                            <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <Cloud className="w-3.5 h-3.5 text-sky-400" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-xs capitalize flex items-center gap-1.5">
-                              {m.provider}
-                              {m.is_local && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal">
-                                  Local
-                                </span>
-                              )}
-                            </span>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                      <div key={`${m.provider}-${m.model_name}`} className="relative group">
+                        <button
+                          onClick={() => {
+                            onSelectModel(m.provider, m.model_name);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-xl flex items-start gap-2.5 transition-colors cursor-pointer ${m.is_custom ? 'pr-8' : ''} ${
+                            isSelected
+                              ? 'bg-amber-500/15 text-amber-200 border border-amber-500/30'
+                              : 'hover:bg-stone-800/80 text-stone-200'
+                          }`}
+                        >
+                          <div className="mt-0.5">
+                            {m.is_local ? (
+                              <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <Cloud className="w-3.5 h-3.5 text-sky-400" />
+                            )}
                           </div>
-                          <div className="text-[11px] text-stone-300 font-mono truncate">{m.model_name}</div>
-                        </div>
-                      </button>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-xs capitalize flex items-center gap-1.5">
+                                {m.provider}
+                                {m.is_local && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal">
+                                    Local
+                                  </span>
+                                )}
+                              </span>
+                              {isSelected && <Check className="w-3.5 h-3.5 text-amber-400" />}
+                            </div>
+                            <div className="text-[11px] text-stone-300 font-mono truncate">{m.model_name}</div>
+                          </div>
+                        </button>
+                        {m.is_custom && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await handleRemoveModel(m.provider, m.model_name);
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-stone-500 hover:text-red-400 hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                            title="Remove Model"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

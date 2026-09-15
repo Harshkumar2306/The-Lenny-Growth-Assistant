@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Sparkles, ArrowDown, BookOpen, Layers, ArrowUpRight } from 'lucide-react';
+import { Sparkles, ArrowDown } from 'lucide-react';
 import { Message, Artifact, Citation } from '../../lib/api';
 import { MessageItem } from './MessageItem';
 

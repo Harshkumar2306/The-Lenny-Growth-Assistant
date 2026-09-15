@@ -56,6 +56,7 @@ class ModelStatus(BaseModel):
     model_name: str
     available: bool
     is_local: bool
+    is_custom: bool = False
     details: Optional[str] = None
 
 class HealthResponse(BaseModel):
