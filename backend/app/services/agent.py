@@ -20,9 +20,11 @@ BASE_SYSTEM_PROMPT = """You are "The Lenny Growth Assistant", an elite product m
    - When citing, reference the episode title and context.
 
 2. STRICT BOUNDARIES & NEGATIVE REJECTION:
-   - If the user asks a question that is NOT addressed in Lenny's Podcast transcripts, explicitly and politely acknowledge:
+   - The user's query must be answered ONLY if the provided transcripts explicitly discuss the user's semantic intent.
+   - Beware of coincidental vocabulary overlap (polysemy). If the user asks a non-business question (e.g. "how to cook food", "how to catch a fish"), and the chunks only contain coincidental matches (e.g., a guest named "Megan Cook", a term like "fish food"), you MUST reject the prompt.
+   - To reject, you MUST output EXACTLY this phrase:
      "Based on the transcripts in the Lenny's Podcast knowledge base, this topic is not discussed by any of the guests. I can only provide advice grounded in Lenny's podcast repository (product management, growth loops, monetization, hiring, and company building)."
-   - Never invent or hallucinate advice outside of the podcast transcripts.
+   - Never force a product management answer onto an off-topic query.
 
 3. PRESENTATION & FORMATTING STANDARDS:
    - Always structure your response using clear Markdown headings (e.g. `### Core Framework`, `### Tactical Takeaways`).
@@ -188,6 +190,34 @@ class AgentService:
 
         # Hybrid retrieval
         chunks, citations, max_score = rag_engine.search(retrieval_query, top_k=5)
+
+        if max_score >= 0.12 and retrieval_query != message and chunks:
+            # Query expansion can poison the guardrail if an off-topic short message 
+            # (e.g. "how do I bake a cake") is appended to a highly relevant previous message.
+            # Verify the chunk actually covers at least one substantive word from the new message.
+            STOP_WORDS = {
+                "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "he",
+                "in", "is", "it", "its", "of", "on", "that", "the", "to", "was", "were",
+                "will", "with", "what", "how", "who", "when", "where", "which", "why",
+                "me", "my", "we", "you", "i", "can", "do", "does", "should", "about", "tell",
+                "write", "writing", "executive", "ship", "draft", "article", "post",
+                "create", "creating", "made", "make", "making", "build", "building",
+                "interactive", "widget", "widgets", "generate", "generating",
+                "please", "want", "need", "convert", "converting", "turn", "turning", "into",
+                "essay", "essays", "retrieve", "retrieved", "retrieving",
+                "simulator", "simulators", "slider", "sliders", "dashboard", "dashboards",
+                "calculate", "calculating", "calculator", "calculators", "projection",
+                "projections", "template", "templates", "matrix", "matrices",
+                "include", "including", "based", "provide", "providing", "dynamically",
+                "guide", "step", "steps",
+            }
+            raw_tokens = [t for t in re.findall(r'\w+', message.lower()) if t not in STOP_WORDS and len(t) >= 2 and not t.isdigit()]
+            if len(raw_tokens) > 0:
+                best_text = chunks[0]["text"].lower()
+                matched_new = sum(1 for t in raw_tokens if t in best_text)
+                if matched_new == 0:
+                    max_score = 0.0
+
         if max_score < 0.12 and retrieval_query != message:
             # Query expansion must never poison a legitimate short follow-up:
             # if the previous turn was out-of-domain (rejected), its words
@@ -522,6 +552,33 @@ class AgentService:
                     f"You can explore the live calculator, manipulate interactive sliders, and inspect dynamic calculation outputs "
                     f"in the **Deliverables panel on the right**."
                 )
+
+        if "this topic is not discussed by any of the guests" in full_content or "this specific topic is not covered in the available episodes" in full_content:
+            yield {"type": "citations", "data": []}
+            artifacts = []
+            citations = []
+            full_content = (
+                "Based on the transcripts in the Lenny's Podcast knowledge base, this specific topic "
+                "is not covered in the available episodes. I am strictly grounded in Lenny's podcast archives "
+                "covering product management, growth, retention, hiring, and startup strategy.\n\n"
+                "Feel free to ask about topics like **Shreyas Doshi on pre-mortems**, **Elena Verna on B2B product-led growth**, "
+                "**Casey Winters on growth loops**, or **Rahul Vohra on measuring Product-Market Fit**."
+            )
+            yield {
+                "type": "done",
+                "data": {
+                    "rejection": True,
+                    "session_id": session_id,
+                    "full_content": full_content,
+                    "artifacts_count": 0,
+                    "suggestions": [
+                        "What are Shreyas Doshi's top product frameworks?",
+                        "How does Elena Verna explain B2B growth loops?",
+                        "How to measure Product-Market Fit according to Rahul Vohra?"
+                    ]
+                }
+            }
+            return
 
         for art in artifacts:
             yield {"type": "artifact", "data": art.model_dump(mode="json")}

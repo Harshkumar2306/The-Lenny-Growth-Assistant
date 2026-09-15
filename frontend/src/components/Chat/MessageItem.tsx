@@ -27,9 +27,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [showCitations, setShowCitations] = useState(true);
+  const [showActions, setShowActions] = useState(false);
 
   const isUser = message.role === 'user';
   const citations = message.citations || [];
+  const isRejectionOrGreeting = message.content.includes("Based on the transcripts in the Lenny's Podcast knowledge base") || message.content.includes("👋 **Hello!");
 
   const relatedArtifacts = artifacts.filter(
     a => a.message_id === message.id || message.content.includes(a.id)
@@ -343,53 +345,66 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           )}
 
           {/* Quick Action Buttons & Suggestions for Assistant Message */}
-          {!isUser && (
-            <div className="pt-2 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => onTriggerShip30(message.content)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900/90 hover:bg-amber-500/10 border border-stone-800 hover:border-amber-500/40 text-xs font-semibold text-stone-300 hover:text-amber-300 transition-all cursor-pointer shadow-xs group"
-                  title="Generate a publication-grade Ship 30 for 30 essay grounded in this answer"
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span>Turn into Ship 30 Essay (~1,250 words)</span>
-                </button>
+          {!isUser && !isRejectionOrGreeting && (
+            <div className="pt-2 mt-2 border-t border-stone-800/80">
+              <button
+                onClick={() => setShowActions(!showActions)}
+                className="flex items-center gap-2 text-xs font-semibold text-amber-500/80 hover:text-amber-400 cursor-pointer transition-colors mb-2"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Explore Actions & Follow-ups</span>
+                {showActions ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
 
-                <button
-                  onClick={() =>
-                    onTriggerPrototype
-                      ? onTriggerPrototype(message.content)
-                      : onSelectPromptChip?.(
-                          `Build an interactive HTML prototype and calculator widget based on this strategic insight:\n\n${message.content.slice(0, 450)}`,
-                          'artifact'
-                        )
-                  }
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900/90 hover:bg-sky-500/10 border border-stone-800 hover:border-sky-500/40 text-xs font-semibold text-stone-300 hover:text-sky-300 transition-all cursor-pointer shadow-xs group"
-                  title="Generate an interactive HTML prototype or calculator widget in the Artifact Viewer"
-                >
-                  <Layers className="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform" />
-                  <span>Build Interactive HTML Prototype</span>
-                </button>
-              </div>
+              {showActions && (
+                <div className="pt-2 space-y-3 animate-in fade-in duration-150">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => onTriggerShip30(message.content)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900/90 hover:bg-amber-500/10 border border-stone-800 hover:border-amber-500/40 text-xs font-semibold text-stone-300 hover:text-amber-300 transition-all cursor-pointer shadow-xs group"
+                      title="Generate a publication-grade Ship 30 for 30 essay grounded in this answer"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                      <span>Turn into Ship 30 Essay (~1,250 words)</span>
+                    </button>
 
-              {isLast && suggestions && suggestions.length > 0 && (
-                <div className="pt-2 border-t border-stone-900/60 space-y-2">
-                  <div className="text-[11px] font-semibold text-stone-400 flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                    <span>Suggested Follow-ups</span>
+                    <button
+                      onClick={() =>
+                        onTriggerPrototype
+                          ? onTriggerPrototype(message.content)
+                          : onSelectPromptChip?.(
+                              `Build an interactive HTML prototype and calculator widget based on this strategic insight:\n\n${message.content.slice(0, 450)}`,
+                              'artifact'
+                            )
+                      }
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-900/90 hover:bg-sky-500/10 border border-stone-800 hover:border-sky-500/40 text-xs font-semibold text-stone-300 hover:text-sky-300 transition-all cursor-pointer shadow-xs group"
+                      title="Generate an interactive HTML prototype or calculator widget in the Artifact Viewer"
+                    >
+                      <Layers className="w-3.5 h-3.5 text-sky-400 group-hover:scale-110 transition-transform" />
+                      <span>Build Interactive HTML Prototype</span>
+                    </button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {suggestions.map((sug, i) => (
-                      <button
-                        key={i}
-                        onClick={() => onSelectPromptChip && onSelectPromptChip(sug, sug.toLowerCase().includes('ship 30') ? 'ship30' : 'chat')}
-                        className="text-left text-xs px-3 py-1.5 rounded-xl bg-stone-900/90 hover:bg-amber-500/10 border border-stone-800 hover:border-amber-500/40 text-stone-300 hover:text-amber-200 transition-all cursor-pointer group flex items-center gap-2"
-                      >
-                        <span>{sug}</span>
-                        <ArrowRight className="w-3 h-3 text-stone-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-transform" />
-                      </button>
-                    ))}
-                  </div>
+
+                  {isLast && suggestions && suggestions.length > 0 && (
+                    <div className="pt-2 border-t border-stone-900/60 space-y-2">
+                      <div className="text-[11px] font-semibold text-stone-400 flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-amber-400" />
+                        <span>Suggested Follow-ups</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {suggestions.map((sug, i) => (
+                          <button
+                            key={i}
+                            onClick={() => onSelectPromptChip && onSelectPromptChip(sug, sug.toLowerCase().includes('ship 30') ? 'ship30' : 'chat')}
+                            className="text-left text-xs px-3 py-1.5 rounded-xl bg-stone-900/90 hover:bg-amber-500/10 border border-stone-800 hover:border-amber-500/40 text-stone-300 hover:text-amber-200 transition-all cursor-pointer group flex items-center gap-2"
+                          >
+                            <span>{sug}</span>
+                            <ArrowRight className="w-3 h-3 text-stone-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
