@@ -64,12 +64,60 @@ const CSP_POLICY = [
 
 const CSP_META = `<meta http-equiv="Content-Security-Policy" content="${CSP_POLICY}">`;
 
-function sanitizeHtml(html: string): string {
-  return DOMPurify.sanitize(html, {
+const ALLOWED_EXTERNAL_CDNS = /^https:\/\/(cdn\.tailwindcss\.com|cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com)\//i;
+
+function sanitizeAndPreserveScripts(html: string): string {
+  // 1. Extract all <script ...>...</script> blocks
+  const scripts: string[] = [];
+  const scriptRegex = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = scriptRegex.exec(html)) !== null) {
+    const attrs = match[1] || '';
+    const body = match[2] || '';
+    const srcMatch = attrs.match(/\bsrc=["']([^"']+)["']/i);
+    if (srcMatch) {
+      const src = srcMatch[1].trim();
+      if (!ALLOWED_EXTERNAL_CDNS.test(src)) {
+        // Discard untrusted external CDN sources
+        continue;
+      }
+      scripts.push(`<script${attrs}></script>`);
+    } else {
+      // Retain inline script logic (calculators, event listeners, dynamic meters)
+      scripts.push(`<script${attrs}>\n${body}\n</script>`);
+    }
+  }
+
+  // 2. Remove scripts from HTML string so DOMPurify doesn't strip or empty them
+  let htmlWithoutScripts = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+
+  // 3. Temporarily preserve inline on* handlers (oninput, onchange, onclick) from DOMPurify stripping
+  htmlWithoutScripts = htmlWithoutScripts.replace(/\b(on[a-z]+)\s*=\s*(['"][^'"]*['"])/gi, 'data-sandbox-$1=$2');
+
+  // 4. Sanitize structural HTML markup with DOMPurify
+  let sanitized = DOMPurify.sanitize(htmlWithoutScripts, {
     WHOLE_DOCUMENT: true,
-    ADD_TAGS: ['script', 'link', 'canvas', 'svg', 'button', 'input', 'form', 'table'],
-    ADD_ATTR: ['onclick', 'oninput', 'onchange', 'style', 'class', 'id', 'type', 'value', 'placeholder', 'min', 'max', 'step', 'checked', 'for', 'rows', 'cols', 'name'],
+    ADD_TAGS: ['link', 'canvas', 'svg', 'button', 'input', 'form', 'table'],
+    ADD_ATTR: ['style', 'class', 'id', 'type', 'value', 'placeholder', 'min', 'max', 'step', 'checked', 'for', 'rows', 'cols', 'name'],
   });
+
+  // 5. Restore inline on* event handlers
+  sanitized = sanitized.replace(/\bdata-sandbox-(on[a-z]+)\s*=\s*(['"][^'"]*['"])/gi, '$1=$2');
+
+  // 6. Append the safe scripts right before </body> or </html> so all DOM elements are mounted
+  if (scripts.length > 0) {
+    const scriptBundle = '\n' + scripts.join('\n') + '\n';
+    if (sanitized.includes('</body>')) {
+      sanitized = sanitized.replace('</body>', `${scriptBundle}</body>`);
+    } else if (sanitized.includes('</html>')) {
+      sanitized = sanitized.replace('</html>', `${scriptBundle}</html>`);
+    } else {
+      sanitized += scriptBundle;
+    }
+  }
+
+  return sanitized;
 }
 
 function buildDocument(htmlContent: string, title: string): string {
@@ -93,7 +141,7 @@ function buildDocument(htmlContent: string, title: string): string {
     }
   }
 
-  const sanitized = sanitizeHtml(clean);
+  const sanitized = sanitizeAndPreserveScripts(clean);
   const responsiveShield = `
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>

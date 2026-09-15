@@ -232,7 +232,7 @@ def generate_jtbd_switching_simulator_html(title: str = "Bob Moesta JTBD 4 Force
           <span id="valPush" class="text-xs font-mono font-bold text-sky-400">65</span>
         </div>
         <p class="text-[10px] text-slate-400 mb-2">Pain, friction, or dissatisfaction with existing workaround.</p>
-        <input type="range" id="sliderPush" min="0" max="100" value="65" class="w-full accent-sky-400 cursor-pointer">
+        <input type="range" id="sliderPush" min="0" max="100" value="65" oninput="calculate()" onchange="calculate()" class="w-full accent-sky-400 cursor-pointer">
       </div>
 
       <!-- Force 2: Pull -->
@@ -242,7 +242,7 @@ def generate_jtbd_switching_simulator_html(title: str = "Bob Moesta JTBD 4 Force
           <span id="valPull" class="text-xs font-mono font-bold text-sky-400">75</span>
         </div>
         <p class="text-[10px] text-slate-400 mb-2">Attraction to better outcomes, speed, and new superpowers.</p>
-        <input type="range" id="sliderPull" min="0" max="100" value="75" class="w-full accent-sky-400 cursor-pointer">
+        <input type="range" id="sliderPull" min="0" max="100" value="75" oninput="calculate()" onchange="calculate()" class="w-full accent-sky-400 cursor-pointer">
       </div>
 
       <!-- Force 3: Anxiety -->
@@ -252,7 +252,7 @@ def generate_jtbd_switching_simulator_html(title: str = "Bob Moesta JTBD 4 Force
           <span id="valAnxiety" class="text-xs font-mono font-bold text-rose-400">45</span>
         </div>
         <p class="text-[10px] text-slate-400 mb-2">Fear of learning curve, data loss, buyer regret, or cost.</p>
-        <input type="range" id="sliderAnxiety" min="0" max="100" value="45" class="w-full accent-rose-400 cursor-pointer">
+        <input type="range" id="sliderAnxiety" min="0" max="100" value="45" oninput="calculate()" onchange="calculate()" class="w-full accent-rose-400 cursor-pointer">
       </div>
 
       <!-- Force 4: Habit -->
@@ -262,7 +262,7 @@ def generate_jtbd_switching_simulator_html(title: str = "Bob Moesta JTBD 4 Force
           <span id="valHabit" class="text-xs font-mono font-bold text-rose-400">55</span>
         </div>
         <p class="text-[10px] text-slate-400 mb-2">Muscle memory, existing workflows, and inertia.</p>
-        <input type="range" id="sliderHabit" min="0" max="100" value="55" class="w-full accent-rose-400 cursor-pointer">
+        <input type="range" id="sliderHabit" min="0" max="100" value="55" oninput="calculate()" onchange="calculate()" class="w-full accent-rose-400 cursor-pointer">
       </div>
     </div>
 
@@ -290,52 +290,65 @@ def generate_jtbd_switching_simulator_html(title: str = "Bob Moesta JTBD 4 Force
     const tacticalAdvice = document.getElementById('tacticalAdvice');
 
     function calculate() {
-      let push = parseInt(sliderPush.value);
-      let pull = parseInt(sliderPull.value);
-      let anxiety = parseInt(sliderAnxiety.value);
-      let habit = parseInt(sliderHabit.value);
+      let push = parseInt(sliderPush ? sliderPush.value : 65);
+      let pull = parseInt(sliderPull ? sliderPull.value : 75);
+      let anxiety = parseInt(sliderAnxiety ? sliderAnxiety.value : 45);
+      let habit = parseInt(sliderHabit ? sliderHabit.value : 55);
 
-      valPush.textContent = push;
-      valPull.textContent = pull;
-      valAnxiety.textContent = anxiety;
-      valHabit.textContent = habit;
+      if (valPush) valPush.textContent = push;
+      if (valPull) valPull.textContent = pull;
+      if (valAnxiety) valAnxiety.textContent = anxiety;
+      if (valHabit) valHabit.textContent = habit;
 
       let forward = push + pull;
       let friction = anxiety + habit;
       let net = forward - friction;
 
-      netScore.textContent = (net >= 0 ? '+' : '') + net;
+      if (netScore) netScore.textContent = (net >= 0 ? '+' : '') + net;
 
       // Map -100..+100 to 0%..100%
       let pct = Math.min(100, Math.max(0, (net + 100) / 2));
-      balanceBar.style.width = pct + '%';
+      if (balanceBar) balanceBar.style.width = pct + '%';
 
       if (net > 20) {
-        netScore.className = 'text-3xl sm:text-4xl font-extrabold text-emerald-400';
-        balanceBar.className = 'bg-emerald-400 h-2.5 rounded-full transition-all duration-300';
-        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
-        statusBadge.textContent = 'High Switch Likelihood';
-        tacticalAdvice.innerHTML = '<span class="font-bold text-emerald-300">Customer Primed to Switch:</span> Forward forces (Push ' + push + ' + Pull ' + pull + ' = ' + forward + ') heavily outweigh friction. Maintain clear onboarding and reduce the initial time-to-value so habits can form quickly.';
+        if (netScore) netScore.className = 'text-3xl sm:text-4xl font-extrabold text-emerald-400';
+        if (balanceBar) balanceBar.className = 'bg-emerald-400 h-2.5 rounded-full transition-all duration-300';
+        if (statusBadge) {
+          statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+          statusBadge.textContent = 'High Switch Likelihood';
+        }
+        if (tacticalAdvice) tacticalAdvice.innerHTML = '<span class="font-bold text-emerald-300">Customer Primed to Switch:</span> Forward forces (Push ' + push + ' + Pull ' + pull + ' = ' + forward + ') heavily outweigh friction. Maintain clear onboarding and reduce the initial time-to-value so habits can form quickly.';
       } else if (net >= -15) {
-        netScore.className = 'text-3xl sm:text-4xl font-extrabold text-amber-400';
-        balanceBar.className = 'bg-amber-400 h-2.5 rounded-full transition-all duration-300';
-        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
-        statusBadge.textContent = 'Stalled Decision Zone';
-        tacticalAdvice.innerHTML = '<span class="font-bold text-amber-300">Friction Blocking Adoption:</span> Forward force (' + forward + ') is battling inertia (' + friction + '). Do NOT just add more features. Either amplify the Push (highlight the cost of their current problem) or eliminate Anxiety (offer migration tools and zero-risk guarantees).';
+        if (netScore) netScore.className = 'text-3xl sm:text-4xl font-extrabold text-amber-400';
+        if (balanceBar) balanceBar.className = 'bg-amber-400 h-2.5 rounded-full transition-all duration-300';
+        if (statusBadge) {
+          statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+          statusBadge.textContent = 'Stalled Decision Zone';
+        }
+        if (tacticalAdvice) tacticalAdvice.innerHTML = '<span class="font-bold text-amber-300">Friction Blocking Adoption:</span> Forward force (' + forward + ') is battling inertia (' + friction + '). Do NOT just add more features. Either amplify the Push (highlight the cost of their current problem) or eliminate Anxiety (offer migration tools and zero-risk guarantees).';
       } else {
-        netScore.className = 'text-3xl sm:text-4xl font-extrabold text-rose-400';
-        balanceBar.className = 'bg-rose-400 h-2.5 rounded-full transition-all duration-300';
-        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40';
-        statusBadge.textContent = 'Customer Inertia Dominates';
-        tacticalAdvice.innerHTML = '<span class="font-bold text-rose-300">No Switch Will Occur:</span> Habit (' + habit + ') and Anxiety (' + anxiety + ') are overpowering the desire to change. The current pain is not sharp enough. You must fundamentally redefine the target customer who experiences an acute, unavoidable crisis today.';
+        if (netScore) netScore.className = 'text-3xl sm:text-4xl font-extrabold text-rose-400';
+        if (balanceBar) balanceBar.className = 'bg-rose-400 h-2.5 rounded-full transition-all duration-300';
+        if (statusBadge) {
+          statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40';
+          statusBadge.textContent = 'Customer Inertia Dominates';
+        }
+        if (tacticalAdvice) tacticalAdvice.innerHTML = '<span class="font-bold text-rose-300">No Switch Will Occur:</span> Habit (' + habit + ') and Anxiety (' + anxiety + ') are overpowering the desire to change. The current pain is not sharp enough. You must fundamentally redefine the target customer who experiences an acute, unavoidable crisis today.';
       }
     }
 
-    sliderPush.addEventListener('input', calculate);
-    sliderPull.addEventListener('input', calculate);
-    sliderAnxiety.addEventListener('input', calculate);
-    sliderHabit.addEventListener('input', calculate);
+    ['sliderPush', 'sliderPull', 'sliderAnxiety', 'sliderHabit'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', calculate);
+        el.addEventListener('change', calculate);
+      }
+    });
+
     calculate();
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', calculate);
+    }
   </script>
 </body>
 </html>"""
