@@ -151,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
                             <div className="text-[11px] text-stone-300 font-mono truncate">{m.model_name}</div>
                           </div>
                         </button>
-                        {m.is_custom && (
+                        {!m.is_local && (
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();

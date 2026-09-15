@@ -87,10 +87,24 @@ class LLMGateway:
         provider_clean = provider.strip().lower()
         model_clean = model_name.strip()
         key = f"{provider_clean}:{model_clean}"
+        removed = False
+        
         if key in self.custom_models:
             del self.custom_models[key]
-            return True
-        return False
+            removed = True
+            
+        # Also clear from memory if it matches built-in settings
+        if provider_clean == "groq" and settings.DEFAULT_GROQ_MODEL == model_clean:
+            settings.GROQ_API_KEY = None
+            removed = True
+        elif provider_clean == "anthropic" and getattr(settings, "DEFAULT_ANTHROPIC_MODEL", DEFAULT_ANTHROPIC_MODEL) == model_clean:
+            settings.ANTHROPIC_API_KEY = None
+            removed = True
+        elif provider_clean == "openai" and getattr(settings, "DEFAULT_OPENAI_MODEL", DEFAULT_OPENAI_MODEL) == model_clean:
+            settings.OPENAI_API_KEY = None
+            removed = True
+            
+        return removed
 
     async def get_available_models(self) -> List[ModelStatus]:
         models = []
@@ -190,11 +204,13 @@ class LLMGateway:
 
     def _check_groq_status(self) -> ModelStatus:
         has_key = bool(settings.GROQ_API_KEY and len(settings.GROQ_API_KEY.strip()) > 5)
+        is_custom = f"groq:{settings.DEFAULT_GROQ_MODEL}" in self.custom_models
         return ModelStatus(
             provider="groq",
             model_name=settings.DEFAULT_GROQ_MODEL,
             available=has_key,
             is_local=False,
+            is_custom=is_custom,
             details="Groq API key active" if has_key else "Provide GROQ_API_KEY in .env or UI"
         )
 
