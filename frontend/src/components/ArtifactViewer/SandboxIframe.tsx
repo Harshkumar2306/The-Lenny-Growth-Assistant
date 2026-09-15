@@ -108,10 +108,10 @@ function sanitizeAndPreserveScripts(html: string): string {
   // 6. Append the safe scripts right before </body> or </html> so all DOM elements are mounted
   if (scripts.length > 0) {
     const scriptBundle = '\n' + scripts.join('\n') + '\n';
-    if (sanitized.includes('</body>')) {
-      sanitized = sanitized.replace('</body>', `${scriptBundle}</body>`);
-    } else if (sanitized.includes('</html>')) {
-      sanitized = sanitized.replace('</html>', `${scriptBundle}</html>`);
+    if (/<\/body>/i.test(sanitized)) {
+      sanitized = sanitized.replace(/<\/body>/i, `${scriptBundle}</body>`);
+    } else if (/<\/html>/i.test(sanitized)) {
+      sanitized = sanitized.replace(/<\/html>/i, `${scriptBundle}</html>`);
     } else {
       sanitized += scriptBundle;
     }
@@ -200,8 +200,8 @@ function buildDocument(htmlContent: string, title: string): string {
     </style>
   `;
 
-  if (sanitized.includes('<head')) {
-    return sanitized.replace('<head>', `<head>${CSP_META}${responsiveShield}`);
+  if (/<head[^>]*>/i.test(sanitized)) {
+    return sanitized.replace(/<head[^>]*>/i, `<head>${CSP_META}${responsiveShield}`);
   }
 
   return `
