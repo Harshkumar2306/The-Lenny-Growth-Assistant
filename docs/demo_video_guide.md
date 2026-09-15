@@ -1,84 +1,81 @@
 # Candidate Demo Video Guide & Script (2–3 Minutes)
 ## The Lenny Growth Assistant
 
-This script and recording checklist is prepared to help you record the **2–3 minute video with your camera enabled** required by Section 6 & 8 of the Oogway Labs assessment.
+This script and recording checklist is prepared for recording the **2–3 minute demo video with webcam enabled** required by the Forward Deployed Engineer take-home assessment.
 
 ---
 
 ## 📹 Video Requirements Checklist
-- [ ] **Duration:** 2 to 3 minutes (stay strictly within this window).
-- [ ] **Camera:** Your webcam enabled in the corner (e.g. Loom, QuickTime, or OBS).
-- [ ] **Demonstrate:**
-  1. The business problem being solved.
-  2. The working product (UI, grounded answers, citations).
-  3. **Local Ollama running on your machine** (mandatory).
-  4. Ship 30 for 30 essay skill & Claude-style Artifact Viewer.
-  5. One key technical trade-off you navigated as a Forward Deployed Engineer.
-- [ ] **Upload:** Upload as Unlisted or Public to YouTube and paste the link into the submission form.
+- [ ] **Duration:** Strictly between 2:00 and 3:00 minutes.
+- [ ] **Camera:** Webcam enabled in corner (Loom, QuickTime, or OBS).
+- [ ] **Must Demonstrate:**
+  1. The business problem being solved for product and growth teams.
+  2. Grounded Q&A with exact YouTube timestamps.
+  3. **Local Ollama running offline on your machine (`llama3.2:1b`)** (mandatory).
+  4. Ship 30 for 30 Atomic Essay skill (rendered inline in chat + in Artifact Viewer).
+  5. Interactive HTML prototype (live sliders, dynamic math) running in a sandboxed iframe.
+  6. Multi-deliverable tab switcher (switching between Ship 30 essay and HTML prototype).
+  7. Key technical trade-offs as a Forward Deployed Engineer.
+- [ ] **Upload:** Upload as Unlisted or Public to YouTube or Loom.
 
 ---
 
-## ⏱️ Minute-by-Minute Script & Walkthrough
+## ⏱️ Minute-by-Minute Script
 
-### [0:00 – 0:35] 1. The Problem & Business Context (Camera On)
-> *"Hi everyone, I'm presenting The Lenny Growth Assistant, an internal strategic copilot built for product and growth teams.  
-> The core business problem: Lenny's Podcast contains 300+ episodes of world-class advice from top operators like Shreyas Doshi and Elena Verna. But for a growth team, finding exact tactical playbooks takes hours of manual listening. Generic AI chatbots hallucinate or give textbook answers.  
-> As a Forward Deployed Engineer, my goal was to turn this raw repository into an enterprise-ready, fully grounded assistant that cites exact podcast moments, generates reusable Ship 30 for 30 essays, and renders live artifacts natively in the browser."*
+### [0:00 – 0:30] 1. The Business Problem & Vision
+> *"Hi everyone, I'm presenting **The Lenny Growth Assistant**—an enterprise product and growth studio built for product managers, growth operators, and founders.  
+> The core problem: *Lenny's Podcast* contains over 300 episodes of world-class advice from iconic leaders like Shreyas Doshi, Elena Verna, and Julie Zhuo. But finding exact operational frameworks takes hours of manual listening. Generic LLMs hallucinate strategies or give textbook advice.  
+> As a Forward Deployed Engineer, I turned this raw archive into a deterministic strategic studio that cites exact podcast timestamps, generates publication-grade Ship 30 essays, and compiles live, sandboxed HTML prototypes directly in the browser."*
 
-### [0:35 – 1:30] 2. Product Walkthrough & Local Ollama Demonstration
-*(Switch to screen share with your camera bubble in the corner)*
-> *"Here is the application running locally with a single command `./run.sh`.  
-> Notice in the top header: our active runtime is **Local Ollama with `llama3.2:1b`**, completely offline on my Mac without sending data to third-party APIs.  
-> Let's test a grounded question: 'What does Shreyas Doshi teach about pre-mortems?'  
-> *(Type prompt and hit Enter)*  
-> Notice the real-time status: it retrieves from our index of **~6,000 dialogue chunks**.  
-> Here is Shreyas Doshi's exact framework: Tigers, Paper Tigers, and Elephants in the room.  
-> And down here is our **Verified Podcast Sources** drawer: with one click, we see direct links to the YouTube episode with the exact timestamp at 24 minutes and 50 seconds."*
+### [0:30 – 1:15] 2. Grounded Q&A & Local Offline Ollama
+*(Show the browser at `http://localhost:5173`. Point to the header)*
+> *"Here is the application running locally with a single `./run.sh` command.  
+> Notice in the top right header: we are running on **Local Ollama with `llama3.2:1b`**—100% offline on my machine with zero third-party API dependencies and zero data egress.  
+> Let's test a strategic question on Karri Saarinen at Linear:  
+> *(Paste Prompt 1)*  
+> Notice the status bar: our hybrid search engine queries **11,471 dialogue chunks** from 272 podcast episodes.  
+> In under 2 seconds, it synthesizes Karri's philosophy: no A/B tests on craft, fluid project teams instead of permanent Scrum squads, and only one Head of Product.  
+> Look at the **Verified Podcast Sources** drawer: every point links directly to the exact second in the interview on YouTube—like 9 minutes and 13 seconds."*
 
-### [1:30 – 2:10] 3. Ship 30 for 30 Skill & Claude-Style Artifact Viewer
-> *"Now, product teams don't just want conversation—they need written deliverables.  
-> Let's click **'Turn into Ship 30 for 30 Essay (~1,250 words)'**.  
-> *(Click button)*  
-> Our specialized Ship 30 skill pipeline kicks in, encoding Nicolas Cole and Dickie Bush's exact writing methodology: a magnetic hook, 1-3-1 sentence cadence, and 3 to 5 tactical pillars.  
-> Notice how the **Artifact Panel pops open side-by-side**—just like Claude Artifacts!  
-> Users can toggle between **Preview** and **Source Code**, copy with one click, or export to Markdown.  
-> If we ask for an interactive PMF calculator widget, it renders interactive HTML in a **secure sandboxed iframe** with script isolation, ensuring untrusted LLM-generated code cannot access parent cookies or local storage."*
+### [1:15 – 1:55] 3. Ship 30 for 30 Atomic Essay & Dual-Surface Canvas
+> *"Now, product teams don't just chat—they need executive deliverables.  
+> Let's request a Ship 30 for 30 atomic essay on Julie Zhuo's North Star Metrics:  
+> *(Paste Prompt 2)*  
+> The model immediately adopts Nicolas Cole and Dickie Bush's viral digital writing architecture:  
+> 1 bold hook, 1 core principle, a 3-bullet breakdown of inputs vs outputs, and a memorable punchline.  
+> Crucially, as a Forward Deployed Engineer, I solved the dual-surface problem: the entire 261-word essay renders cleanly inside the chat feed, while simultaneously opening the **Executive Deliverables Canvas** on the right!  
+> Here in the Artifact Viewer, we have outline navigation, an exact word counter (261 words), reading time, and 1-click Print to PDF."*
 
-### [2:10 – 2:50] 4. Key Technical Trade-off (Forward Deployed Engineering)
-> *"One crucial technical trade-off I made was around **Model Runtime & Deployment Resilience**:  
-> Running local models with Ollama is fantastic for privacy and offline demos, but local compute is constrained by memory and latency on complex 1,250-word essays.  
-> Rather than locking the team into one provider, I architected a **Flexible Multi-Model Gateway** with a dynamic runtime switcher in the header. We can toggle seamlessly between local Ollama and cloud Groq without changing a single line of application code.  
-> Furthermore, if PostgreSQL is not available in the evaluator's environment, our database adapter automatically falls back to local SQLite with zero downtime.  
-> This ensures that any engineering team can clone, run `./run.sh`, and trust the system immediately.  
-> Thank you!"*
+### [1:55 – 2:35] 4. Interactive Sandboxed HTML Prototype & Multi-Deliverable Switcher
+> *"Next, let's create a functional tool: Bob Moesta's Jobs-to-be-Done 4 Forces Switching Simulator:  
+> *(Paste Prompt 3)*  
+> Watch this: instead of dumping code into the chat, the system compiles an interactive web app rendered inside an isolated iframe sandbox.  
+> The sandbox enforces strict security—omitting `allow-same-origin` so untrusted code can never access parent session cookies.  
+> We can test it live across Desktop, Tablet, and Mobile viewports.  
+> Notice the live math: as I drag the sliders for Push, Pull, Anxiety, and Habit, the Net Switching Momentum recalculates dynamically between -100 and +100, and Bob Moesta's tactical playbook updates in real-time!  
+> And look at our **Deliverables Switcher** at the top: we have both deliverables preserved! We can switch seamlessly between the Julie Zhuo Ship 30 essay and the Bob Moesta HTML simulator with one click."*
+
+### [2:35 – 3:00] 5. Key Technical Trade-offs & Architecture Wrap-Up
+> *"To wrap up, two key architectural trade-offs:  
+> First, **Resilience over Rigidity**: while we support PostgreSQL 16, our database adapter automatically degrades to an embedded SQLite WAL database if Postgres is offline, guaranteeing that evaluators can run the repo with zero setup.  
+> Second, **Deterministic Grounding**: before calling any LLM, our sub-30ms semantic coverage gate checks token overlap—rejecting out-of-domain queries like 'how to bake bread' with zero hallucination and zero inference cost.  
+> Thank you for reviewing The Lenny Growth Assistant!"*
 
 ---
 
-## 🎬 Tips for Recording
-1. **Loom or QuickTime:** Loom is easiest because it places your camera circle over your screen recording automatically.
-2. **Resolution:** 1080p recommended.
-3. **Sound:** Use a clear microphone or headset.
-4. **YouTube Settings:** Select "Unlisted" so anyone with the link can view.
+## 📋 The 3 Exact Prompts to Paste During Recording
 
----
+### Prompt 1: Grounded Q&A
+```text
+How does Karri Saarinen’s philosophy of "Product Craft and Zero-Process" at Linear contrast with traditional Agile and Scrum methodologies? Cite Karri's exact podcast interview with Lenny, explain why Linear rejects standard user story estimation, and compare his approach to Marty Cagan's product discovery principles.
+```
 
-## ✅ Phase 4 Validation Note (guide checked against the live app)
+### Prompt 2: Ship 30 for 30 Atomic Essay
+```text
+Write a Ship 30 for 30 style atomic essay on Julie Zhuo's framework for "North Star Metrics vs. Vanity Metrics" and why early-stage teams measure the wrong signals. Follow the strict Ship 30 structure: 1 bold hook, 1 core principle, a 3-bullet breakdown of inputs vs outputs, and a memorable 1-sentence punchline. Keep it between 250 and 300 words.
+```
 
-This script was re-validated against the running application during Phase 4
-(2026-09-13) — every UI element referenced above exists verbatim in the live
-app: the header runtime switcher, the **Verified Podcast Sources (N)** drawer
-with timestamped YouTube links, the **Turn into Ship 30 for 30 Essay
-(~1,250 words)** button, the side-by-side Artifact Viewer with Preview/Source
-and Copy/Download, and the sandboxed HTML preview (banner:
-"Sandboxed Execution").
-
-**Pre-flight checklist before you hit record** (each step matches
-`docs/manual_test_plan.md`):
-
-- [ ] `./run.sh` boots backend (:8000) + frontend (:5173) and the health modal shows `healthy` with the index loaded (~5,993 chunks) — UI-01, UI-09.
-- [ ] Ollama is running and the header shows `ollama (llama3.2:1b)` with a green dot.
-- [ ] Grounded query flows: *"What does Shreyas Doshi say about pre-mortems?"* returns citations and streaming advice — UI-03.
-- [ ] One rejection example is ready in a second tab if you want to show boundaries: *"What is the best recipe for chocolate cake?"* — UI-04.
-- [ ] Ship 30 button flow works (essay artifact opens the viewer) — UI-05, UI-06.
-- [ ] PMF calculator flow works (interactive sandboxed HTML) — UI-07.
-- [ ] Model switcher shows Ollama → Groq toggle without reload — UI-08.
+### Prompt 3: Interactive HTML Prototype
+```text
+Build an interactive HTML/CSS Jobs-to-be-Done (JTBD) Customer Switching Forces Simulator based on Bob Moesta's 4 Forces framework. Include interactive range sliders (0-100) for the 2 Progress Forces (Push of Current Situation, Pull of New Solution) and the 2 Friction Forces (Anxiety of the New, Habit of the Present). Dynamically calculate the Net Switching Probability, display a visual gauge meter, and provide real-time tactical interventions when Habit or Anxiety blocks the switch.
+```
