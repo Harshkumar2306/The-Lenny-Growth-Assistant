@@ -157,10 +157,10 @@ export const Header: React.FC<HeaderProps> = ({
                               e.stopPropagation();
                               await handleRemoveModel(m.provider, m.model_name);
                             }}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-stone-500 hover:text-red-400 hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                            className="absolute -left-1.5 -top-1.5 p-0.5 text-stone-400 hover:text-white bg-stone-800 hover:bg-red-500 border border-stone-600 hover:border-red-400 rounded-full opacity-0 group-hover:opacity-100 transition-all cursor-pointer shadow-md z-10"
                             title="Remove Model"
                           >
-                            <X className="w-3.5 h-3.5" />
+                            <X className="w-3 h-3" strokeWidth={2.5} />
                           </button>
                         )}
                       </div>
