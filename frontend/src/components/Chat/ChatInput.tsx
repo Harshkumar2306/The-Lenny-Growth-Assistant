@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, BookOpen, Layers, ArrowUpRight } from 'lucide-react';
+import { Send, Sparkles, BookOpen, Layers } from 'lucide-react';
 
 interface ChatInputProps {
   onSendMessage: (message: string, skill: string) => void;
@@ -8,56 +8,6 @@ interface ChatInputProps {
   activeModel?: string;
   totalChunks?: number;
 }
-
-interface InspirationItem {
-  label: string;
-  prompt: string;
-}
-
-const INSPIRATION_STARTERS: Record<'chat' | 'ship30' | 'artifact', InspirationItem[]> = {
-  chat: [
-    {
-      label: 'Elena Verna on PLG Loops',
-      prompt: 'What does Elena Verna say about PLG loops vs traditional marketing funnels?',
-    },
-    {
-      label: 'Casey Winters on Retention',
-      prompt: 'How does Casey Winters define user retention flywheels vs acquisition channels?',
-    },
-    {
-      label: 'Shreyas Doshi on Pre-Mortems',
-      prompt: "Explain Shreyas Doshi's Fatal Risk Pre-Mortem framework for product launches.",
-    },
-  ],
-  ship30: [
-    {
-      label: 'Compounding Retention',
-      prompt: 'Write a Ship 30 essay on why user retention compounds while acquisition channels decay.',
-    },
-    {
-      label: 'Elena Verna B2B Playbook',
-      prompt: 'Write a Ship 30 essay on Elena Verna B2B Self-Serve Growth Playbook.',
-    },
-    {
-      label: 'Rahul Vohra HXC Framework',
-      prompt: 'Write a Ship 30 essay on Rahul Vohra High-Expectation Customer (HXC) framework.',
-    },
-  ],
-  artifact: [
-    {
-      label: 'Rahul Vohra 40% PMF Engine',
-      prompt: 'Build an interactive HTML/CSS Superhuman 40% PMF Engine based on Rahul Vohra with real-time sliders.',
-    },
-    {
-      label: 'Bob Moesta JTBD Simulator',
-      prompt: 'Build an interactive Bob Moesta Jobs-to-be-Done switching simulator with the 4 forces.',
-    },
-    {
-      label: 'Elena Verna PLG Calculator',
-      prompt: "Create an interactive HTML/CSS Product-Led Growth (PLG) Loop simulator based on Elena Verna's B2B growth models.",
-    },
-  ],
-};
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
@@ -134,13 +84,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
-    }
-  };
-
-  const handlePickInspiration = (item: InspirationItem) => {
-    setInput(item.prompt);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
     }
   };
 
@@ -225,37 +168,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             )}
           </div>
         </div>
-
-        {/* Quick Inspiration Starters with smooth right-edge fade mask */}
-        {!input.trim() && (
-          <div className="relative overflow-hidden">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none h-8 text-xs select-none pr-8">
-              <div className="flex items-center gap-1 text-[11px] font-semibold text-stone-500 uppercase tracking-wider shrink-0 select-none">
-                <Sparkles className="w-3 h-3 text-amber-400/80 shrink-0" />
-                <span>Try:</span>
-              </div>
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-nowrap h-8">
-                {INSPIRATION_STARTERS[selectedSkill].map((item, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handlePickInspiration(item)}
-                    className={`group h-7 px-3 rounded-full border text-stone-300 hover:text-white transition-colors duration-150 cursor-pointer shrink-0 flex items-center gap-1.5 text-xs ${
-                      selectedSkill === 'artifact'
-                        ? 'bg-stone-900/90 hover:bg-sky-500/15 border-stone-800 hover:border-sky-500/40 hover:text-sky-200'
-                        : 'bg-stone-900/90 hover:bg-amber-500/15 border-stone-800 hover:border-amber-500/40 hover:text-amber-200'
-                    }`}
-                  >
-                    <span className="truncate max-w-[200px] sm:max-w-[260px]">{item.label}</span>
-                    <ArrowUpRight className="w-3 h-3 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" />
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Subtle gradient fade to signal scrollability without ugly clipping */}
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-stone-950 to-transparent pointer-events-none" />
-          </div>
-        )}
 
         {/* Dynamic Mode-Adaptive Symmetrical Input Bar */}
         <form
