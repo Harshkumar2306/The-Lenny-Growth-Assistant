@@ -344,7 +344,8 @@ class AgentService:
                 f"2. Use `### ` Markdown headings to clearly separate distinct themes or frameworks.\n"
                 f"3. Use bullet points (`- `) with **bold lead-ins** for every tactical takeaway.\n"
                 f"4. If presenting a comparison, framework, or competitor breakdown, format it as a clean Markdown table with headers.\n"
-                f"5. Answer directly in conversational Markdown. Do NOT use :::artifact tags."
+                f"5. Answer directly in conversational Markdown. Do NOT use :::artifact tags.\n"
+                f"6. CRITICAL REJECTION RULE: If the User Question is off-topic (e.g. generic entity questions, 'get rich quick' schemes, personal advice, non-business topics), you MUST REJECT it using the exact phrase from your system prompt. Do not force a product management answer onto an off-topic query."
             )
 
         # Build messages payload
